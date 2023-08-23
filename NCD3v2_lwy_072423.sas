@@ -483,6 +483,15 @@ set ENTERIC HAI3 HEP4 RESP1 std_ALL VPD ZOO;
 /*agegroup=put(age, agegrp.);*/
 run;
 
+/*Deen added this to group Syphilis before case aggregation*/
+data final;
+set final;
+TYPE_DESC=scan(TYPE_DESC, 1, '(');
+if TYPE_DESC='Syphilis - 05. Syphilis Late w/ clinical manifestations' then TYPE_DESC='Syphilis - 05. Late Latent Syphilis';
+	else if TYPE_DESC='Syphilis - 05. Unknown Duration or Late Syphilis' then TYPE_DESC='Syphilis - 05. Late Latent Syphilis';
+	else if TYPE_DESC='Syphilis - Unknown Syphilis' then TYPE_DESC=' ';
+run;
+
 /*proc sort data=final;*/
 /*by descending Year OWNING_JD TYPE_DESC CLASSIFICATION_CLASSIFICATION Age CASE_ID;*/
 /*run;*/
@@ -675,23 +684,22 @@ from case_agg_quarter a full join unique_table_a b
 proc sql;
 create table case_agg as
 select coalesce(a.Year,b.Year) as Year, coalesce(a.County_substr,b.County_substr) as County_substr,
-	coalesce(a.TYPE_DESC,b.TYPE_DESC) as TYPE_DESC, coalesce(a.OWNING_JD,b.OWNING_JD) as OWNING_JD,
+	coalesce(a.TYPE_DESC,b.TYPE_DESC) as DISEASE, coalesce(a.OWNING_JD,b.OWNING_JD) as OWNING_JD,
 	coalesce(a.Reporting_Date_Type,b.Reporting_Date_Type) as Reporting_Date_Type,
-	coalesce(a.Disease_Group,b.Disease_Group) as Disease_Group, coalesce(a.Confirmed,b.Confirmed) as Confirmed, 
-	coalesce(a.Total,b.Total) as Total,
+	coalesce(a.Disease_Group,b.Disease_Group) as Disease_Group, coalesce(a.Confirmed,b.Confirmed_Quarterly) as Confirmed, 
+	coalesce(a.Total,b.Total_Quarterly) as Total,
 	a.*, b.*
 from case_agg_annual a full join case_agg_quarter b
 on a.Year=b.Year and a.County_substr=b.County_substr and a.TYPE_DESC=b.TYPE_DESC;
 
-/*data case_agg2;*/
-data case_agg;
-/*set case_agg_annual tb;*/
-set case_agg;
-Disease=scan(TYPE_DESC, 1, '(');
-if Disease='Syphilis - 05. Syphilis Late w/ clinical manifestations' then Disease='Syphilis - 05. Late Latent Syphilis';
-	else if Disease='Syphilis - 05. Unknown Duration or Late Syphilis' then Disease='Syphilis - 05. Late Latent Syphilis';
-	else if Disease='Syphilis - Unknown Syphilis' then Disease=' ';
-run;
+/*Deen edit 8/23/2023. Commented out this code. Re-wrote and moved to before aggregation step*/
+/*data case_agg;*/
+/*set case_agg;*/
+/*Disease=scan(TYPE_DESC, 1, '(');*/
+/*if Disease='Syphilis - 05. Syphilis Late w/ clinical manifestations' then Disease='Syphilis - 05. Late Latent Syphilis';*/
+/*	else if Disease='Syphilis - 05. Unknown Duration or Late Syphilis' then Disease='Syphilis - 05. Late Latent Syphilis';*/
+/*	else if Disease='Syphilis - Unknown Syphilis' then Disease=' ';*/
+/*run;*/
 
 /*proc sql;*/
 /*create table case_agg as*/
@@ -704,6 +712,7 @@ run;
 
 
 /*Add rows for when no cases were reported for the county/year/disease*/
+
 
 proc sort data=county_pops out=unique_counties (keep=COUNTY) nodupkey ;
 by COUNTY;
