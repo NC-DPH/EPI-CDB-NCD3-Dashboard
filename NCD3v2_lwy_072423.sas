@@ -309,8 +309,10 @@ from denorm.case
 where 2015 LE CALCULATED SYMPTOM_YEAR /*use for NCD3 2.0*/
 /*where CALCULATED SYMPTOM_YEAR LE 2022*/ /*use for YTD*/
 and CLASSIFICATION_CLASSIFICATION in ("Confirmed", "Probable")
-and type in  ("CHANCROID", "GRANUL", "LGRANUL", "NGURETH", "PID")
-AND REPORT_TO_CDC = 'Yes'
+and (
+	type in  ("GRANUL", "LGRANUL", "NGURETH", "PID")
+	or (type = "CHANCROID" and REPORT_TO_CDC = 'Yes')
+)
 ORDER by type_desc, owning_jd, SYMPTOM_YEAR;
 quit;
 
