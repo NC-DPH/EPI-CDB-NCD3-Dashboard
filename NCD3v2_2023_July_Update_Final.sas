@@ -307,8 +307,10 @@ from denorm.case
 where 2015 LE CALCULATED SYMPTOM_YEAR LE 2022 /*use for NCD3 2.0*/
 /*where CALCULATED SYMPTOM_YEAR LE 2022*/ /*use for YTD*/
 and CLASSIFICATION_CLASSIFICATION in ("Confirmed", "Probable")
-and type in  ("CHANCROID", "GRANUL", "LGRANUL", "NGURETH", "PID")
-AND REPORT_TO_CDC = 'Yes'
+and (
+	type in  ("GRANUL", "LGRANUL", "NGURETH", "PID")
+	or (type = "CHANCROID" and REPORT_TO_CDC = 'Yes')
+)
 ORDER by type_desc, owning_jd, SYMPTOM_YEAR;
 quit;
 
@@ -480,6 +482,16 @@ set ENTERIC HAI3 HEP4 RESP1 std_ALL VPD ZOO;
 /*agegroup=put(age, agegrp.);*/
 run;
 
+/*Deen moved grouping Syphilis to here*/
+data final;
+set final;
+TYPE_DESC=scan(TYPE_DESC, 1, '(');
+if TYPE_DESC='Syphilis - 05. Syphilis Late w/ clinical manifestations' then TYPE_DESC='Syphilis - 05. Late Latent Syphilis';
+	else if TYPE_DESC='Syphilis - 05. Unknown Duration or Late Syphilis' then TYPE_DESC='Syphilis - 05. Late Latent Syphilis';
+	else if TYPE_DESC='Syphilis - Unknown Syphilis' then TYPE_DESC=' ';
+	else TYPE_DESC=TYPE_DESC;
+run;
+
 /*proc sort data=final;*/
 /*by descending Year OWNING_JD TYPE_DESC CLASSIFICATION_CLASSIFICATION Age CASE_ID;*/
 /*run;*/
@@ -606,10 +618,6 @@ set case_agg hiv /*aids*/ tb;
 if type_desc='HIV' /*OR type_desc='AIDS'*/ then County_substr = propcase(OWNING_JD);
 	else County_substr=substr(OWNING_JD, 1, length(OWNING_JD)-7);
 Disease=scan(TYPE_DESC, 1, '(');
-if Disease='Syphilis - 05. Syphilis Late w/ clinical manifestations' then Disease='Syphilis - 05. Late Latent Syphilis';
-	else if Disease='Syphilis - 05. Unknown Duration or Late Syphilis' then Disease='Syphilis - 05. Late Latent Syphilis';
-	else if Disease='Syphilis - Unknown Syphilis' then Disease=' ';
-	else Disease=Disease;
 run;
 
 proc iml;
@@ -769,7 +777,7 @@ run;
 
 
 proc export data=case_rates_final
-    outfile="T:\Tableau\NCD3 2.0\NCD3 2.0 Output\SAS Output\NCD3v2_2023_July_Update.xlsx"
+    outfile="T:\Tableau\NCD3 2.0\NCD3 2.0 Output\SAS Output\NCD3v2_2023_July_Update_v2_DG.xlsx"
     dbms=xlsx
     replace;
     sheet="Aggregated Cases by Year County";
