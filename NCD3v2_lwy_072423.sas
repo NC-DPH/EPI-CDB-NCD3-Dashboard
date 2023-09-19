@@ -539,18 +539,18 @@ run;
 
 /*proc import datafile='T:\Respiratory\2019-nCoV\Operations\Surveillance\Reports\Black Caucus\County Population Denominators\2020_Pop\EPI_COVID19_POP2020_VACCINEGROUP_STATE TOTAL.xlsx'*/
 /*out=age_pops dbms=xlsx replace; sheet="POP2020_by County"; run;*/
-proc import datafile='T:\Tableau\NCD3 2.0\Population Denominators\NCD3 County Census Pop_10_21.xlsx'
+proc import datafile='T:\Tableau\NCD3 2.0\Population Denominators\July 1 2022 Vintage Estimates\County Census Pop_10_22.xlsx'
 out=county_pops dbms=xlsx replace; run;
 
 proc sql;
 create table temp as
 select *
 from county_pops
-where year=2021;
+where year=2022;
 
 data temp;
 set temp;
-year=2022;
+year=2023;
 run;
 
 data county_pops;
@@ -789,18 +789,18 @@ on a.Disease=b.Disease;
 
 /*Add state rates*/
 
-proc import datafile='T:\Tableau\NCD3 2.0\Population Denominators\NCD3 State Census Pop_10_21.xlsx'
+proc import datafile='T:\Tableau\NCD3 2.0\Population Denominators\July 1 2022 Vintage Estimates\State Census Pop_10_22.xlsx'
 out=state_pops dbms=xlsx replace; run;
 
 proc sql;
 create table temp as
 select *
 from state_pops
-where year=2021;
+where year=2022;
 
 data temp;
 set temp;
-do Year=2022 to 2023; output; end;
+year=2023;
 run;
 
 data state_pops;
@@ -890,7 +890,7 @@ run;
 
 
 proc export data=case_rates_final
-    outfile="T:\Tableau\NCD3 2.0\NCD3 2.0 Output\SAS Output\07-01-23_data_aggregated_quarterly_072523.xlsx"
+    outfile="T:\Tableau\NCD3 2.0\NCD3 2.0 Output\Tableau Data Sources\07-01-23_data_aggregated_quarterly_091923.xlsx"
     dbms=xlsx
     replace;
     sheet="Aggregated Cases by Quarter County";
