@@ -758,12 +758,10 @@ from case_rates a left join county_pops b
 data case_rates (keep=Year Quarter County_substr Disease Reporting_Date_Type Disease_Group Probable Confirmed Total
 Probable_Quarterly Confirmed_Quarterly Total_Quarterly county_pop_adjusted);
 set case_rates;
-if TYPE_DESC='Botulism - foodborne/wound (10)' then county_pop_adjusted=age_1GE;
-else if TYPE_DESC='Influenza, pediatric death (less than18 years of age) (73)' then county_pop_adjusted=age_0_17;
-else if TYPE_DESC='Influenza, adult death (18 years of age or more) (76)' then county_pop_adjusted=age_18GE;
-else if TYPE_DESC=:'Syphilis' and TYPE_DESC NE 'Syphilis - 08. Congenital Syphilis (790)' then county_pop_adjusted=age_1GE;
-else if disease_group='HIV/AIDS' then county_pop_adjusted=county_pop-age_0_12;
-else county_pop_adjusted=county_pop;
+if Disease='Influenza, pediatric death' then county_pop_adjusted=age_0_17;
+	else if Disease='Influenza, adult death' then county_pop_adjusted=age_18GE;
+	else if Disease='HIV' then county_pop_adjusted=county_pop-age_0_12;
+	else county_pop_adjusted=county_pop;
 run;
 
 
@@ -857,10 +855,9 @@ where Year <=2023;
 if (Year=2023 and Quarter=2) or (Year=2023 and Quarter=3) or (Year=2023 and Quarter=4) then delete;
 if missing(Cases_State) then Cases_State=0;
 	else Cases_State=Cases_State;
-if Disease='Botulism - foodborne/wound' then state_pop_adjusted=age_1GE;
-	else if Disease='Influenza, pediatric death (less than18 years of age)' then state_pop_adjusted=age_0_17;
-	else if Disease='Influenza, adult death (18 years of age or more)' then state_pop_adjusted=age_18GE;
-	else if Disease=:'Syphilis' and Disease NE 'Syphilis - 08. Congenital Syphilis' then state_pop_adjusted=age_1GE;
+if Disease='Influenza, pediatric death' then state_pop_adjusted=age_0_17;
+	else if Disease='Influenza, adult death' then state_pop_adjusted=age_18GE;
+	else if Disease='HIV' then state_pop_adjusted=total_pop-age_0_12;
 	else state_pop_adjusted=total_pop;
 if Disease='Botulism - infant' then do;
 		County_Incidence_100k=.;
@@ -890,7 +887,7 @@ run;
 
 
 proc export data=case_rates_final
-    outfile="T:\Tableau\NCD3 2.0\NCD3 2.0 Output\Tableau Data Sources\07-01-23_data_aggregated_quarterly_091923.xlsx"
+    outfile="T:\Tableau\NCD3 2.0\NCD3 2.0 Output\Tableau Data Sources\07-01-23_data_aggregated_quarterly_100523.xlsx"
     dbms=xlsx
     replace;
     sheet="Aggregated Cases by Quarter County";
