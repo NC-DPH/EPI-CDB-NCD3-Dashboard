@@ -1,4 +1,4 @@
-																/*LAST MODIFIED DATE: 7/25/23*/
+																/*LAST MODIFIED DATE: 10/17/23*/
 													/*LAST MODIFIED BY: LINDA YELTON (LWY) linda.yelton@dhhs.nc.gov*/
 /*Purpose: Creates the Data Source for the North Carolina Disease Data Dashboard (NCD3) v2 July 2023 update, adding quarterly data*/
 /*	Internal server: https://internaldashboards.ncdhhs.gov/#/site/DPH/projects/400*/
