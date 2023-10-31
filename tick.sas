@@ -61,6 +61,20 @@ quit;
 proc import datafile='T:\Tableau\NCD3 2.0\Population Denominators\July 1 2022 Vintage Estimates\County Census Pop_10_22.xlsx'
 out=county_pops dbms=xlsx replace; run;
 
+/*Copy 2022 denominator data to year 2023*/
+proc sql;
+create table temp as
+select *
+from county_pops
+where year=2022;
+data temp;
+set temp;
+year=2023;
+run;
+data county_pops;
+set county_pops temp;
+COUNTY = propcase(COUNTY);
+run;
 
 /*Combine with population denominator data for final data set*/
 proc sql;
@@ -78,7 +92,7 @@ run;
 
 /*export data*/
 proc export data=s2
-	outfile='s2.csv'
+	outfile='C:\Users\dgu\Documents\My SAS Files\tickborne\s2.csv'
 	dbms=csv
 	replace;
 run;
@@ -90,19 +104,7 @@ proc sort data=tickid2 out=unique_ticks (keep=common_name) nodupkey ;
 by common_name;
 run;
 
-proc sql;
-create table temp as
-select *
-from county_pops
-where year=2022;
-data temp;
-set temp;
-year=2023;
-run;
-data county_pops;
-set county_pops temp;
-COUNTY = propcase(COUNTY);
-run;
+
 data unique_years;
 do Year=2018 to 2023; output; end;
 run;
