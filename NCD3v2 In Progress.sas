@@ -385,15 +385,25 @@ from hiv;
 /*proc transpose data=hiv1 out=hiv1(drop=_name_ rename=(col1=Counts));*/
 /*by TYPE_DESC OWNING_JD;*/
 /*run;*/
+
 proc sql;
 create table hiv1 as
 select *, /*Counts,
 input(_LABEL_, 4.) as Year,
 Counts as Confirmed label='Confirmed Count',*/
-Total as Confirmed label='Confirmed Count',
-. as Probable label='Probable Count'
-/*Counts as Total label='Total'*/
+Cases as Confirmed_Quarterly label='Confirmed Count Quarterly',
+. as Probable_Quarterly label='Probable Count Quarterly',
+Qtr as Quarter label='Quarter',
+Cases as Total_Quarterly label='Total_Quarterly'
 from hiv1;
+
+proc sql;
+create table hiv as
+select *,
+	sum(Total_Quarterly) as Total
+from hiv1
+group by Year, County
+order by Year desc, County, Quarter;
 
 /*AIDS*/
 /*proc sql;*/
@@ -415,10 +425,19 @@ from hiv1;
 /* COMBINE HIV/AIDS DATA*/
 data HIV/*AIDS*/;
 length TYPE_DESC $4;
-set HIV1/* AIDS1*/;
+set HIV/* AIDS1*/;
 Reporting_Date_Type='Earliest Diagnosis Date';
 Disease_Group='Sexually Transmitted';
-RUN;
+County_substr = propcase(County);
+Disease = 'HIV';
+run;
+
+proc iml;
+edit HIV;
+read all var {County_substr} where(County_substr="Mcdowell");
+County_substr = "McDowell";
+replace all var {County_substr} where(County_substr="Mcdowell");
+close HIV;
 
 
 																/*VPD*/
@@ -618,11 +637,22 @@ from final
 group by Year, OWNING_JD, TYPE_DESC, Reporting_Date_Type, Disease_Group/*, agegroup*/
 order by Year desc, OWNING_JD, TYPE_DESC, Reporting_Date_Type, Disease_Group/*, agegroup*/;
 
+proc sql;
+create table hiv_annual (drop=Qtr Cases Confirmed_Quarterly Probable_Quarterly Quarter Total_Quarterly) as
+select * from hiv
+group by Year, County_substr
+order by Year desc, County_substr;
+proc sort data=HIV out=hiv_annual (drop=Qtr Cases Confirmed_Quarterly Probable_Quarterly Quarter Total_Quarterly) nodupkey;
+by Year County_substr;
+run;
+
 data case_agg_annual;
 set case_agg_annual tb;
 County_substr=substr(OWNING_JD, 1, length(OWNING_JD)-7);
 run;
-
+data case_agg_annual;
+set case_agg_annual hiv_annual(drop=County);
+run;
 
 proc sql;
 create table case_agg_quarter as
@@ -639,6 +669,10 @@ from final
 group by Year, Quarter, OWNING_JD, TYPE_DESC, Reporting_Date_Type, Disease_Group/*, agegroup*/
 order by Year desc, Quarter, OWNING_JD, TYPE_DESC, Reporting_Date_Type, Disease_Group/*, agegroup*/;
 
+data case_agg_quarter;
+set case_agg_quarter hiv;
+run;
+
 /*Add rows for when no cases were reported for the county/year/disease*/
 
 proc sort data=county_pops out=unique_counties (keep=COUNTY) nodupkey ;
@@ -646,7 +680,7 @@ by COUNTY;
 run;
 
 data unique_diseases;
-set case_agg_quarter hiv;
+set case_agg_quarter;
 run;
 proc sort data=unique_diseases out=unique_diseases (keep=TYPE_DESC Reporting_Date_Type Disease_Group) nodupkey ;
 by TYPE_DESC;
@@ -687,23 +721,6 @@ select coalesce(a.Year,b.Year) as Year, coalesce(a.County_substr,b.County_substr
 from case_agg_annual a full join case_agg_quarter b
 on a.Year=b.Year and a.County_substr=b.County_substr and a.TYPE_DESC=b.TYPE_DESC;
 
-data case_agg;
-set case_agg hiv;
-if type_desc='HIV' then do;
-	County_substr = propcase(OWNING_JD);
-	Disease = 'HIV';
-	end;
-run;
-
-
-/*This section for when including HIV data*/
-proc iml;
-edit case_agg;
-read all var {County_substr} where(County_substr="Mcdowell");
-County_substr = "McDowell";
-replace all var {County_substr} where(County_substr="Mcdowell");
-close case_agg;
-
 
 /*Deen edit 8/23/2023. Commented out this code. Re-wrote and moved to before aggregation step*/
 /*data case_agg;*/
@@ -726,17 +743,17 @@ close case_agg;
 
 /*Add rows for when no cases were reported for the county/year/disease*/
 
-
 proc sort data=county_pops out=unique_counties (keep=COUNTY) nodupkey ;
 by COUNTY;
 run;
 
-proc sort data=case_agg out=unique_diseases (keep=Disease Reporting_Date_Type Disease_Group) nodupkey ;
-by Disease;
+proc sort data=case_agg_annual out=unique_diseases (keep=TYPE_DESC Reporting_Date_Type Disease_Group) nodupkey ;
+by TYPE_DESC;
 run;
 data unique_diseases;
-    set unique_diseases;
-    if cmiss(of _all_) then delete;
+set unique_diseases;
+Disease=TYPE_DESC;
+if cmiss(of _all_) then delete;
 run;
 
 data unique_years;
@@ -863,7 +880,7 @@ data case_rates_final (keep=Year Quarter Reporting_Date_Type Disease Disease_Gro
 	Cases_State Cases_State_Quarterly state_pop_adjusted State_Incidence_100k State_Incidence_100k_Quarterly);
 set case_rates;
 where Year <=2023;
-/*if (Year=2023 and Quarter=2) or (Year=2023 and Quarter=3) or (Year=2023 and Quarter=4) then delete;*/
+if /*(Year=2023 and Quarter=2) or (Year=2023 and Quarter=3) or */(Year=2023 and Quarter=4) then delete;*/
 if missing(Cases_State) then Cases_State=0;
 	else Cases_State=Cases_State;
 if Disease='Influenza, pediatric death' then state_pop_adjusted=age_0_17;
@@ -906,11 +923,12 @@ run;
 
 
 /*Save SAS environment*/
-options presenv; 
 
 /*Caution: This libref should never point to a storage location containing any other*/
 /*data, since prior to storing the SAS WORK datasets and catalogs, SAS will delete*/
 /*all of the contents of this library.*/
+
+/*options presenv; */
 /*libname bkuploc 'T:\Tableau\NCD3 2.0\SAS programs\SAS Backups\20231101data';*/
 /*filename restore 'T:\Tableau\NCD3 2.0\SAS programs\SAS Backups\20231101data\restoration_pgm.sas';*/
 /*proc presenv*/
