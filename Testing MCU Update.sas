@@ -4,7 +4,7 @@
 
 
 /*Must have access to NCEDSS_SAS(Z:) - CBD denorm server to run this program*/
-libname denorm 'C:\Users\lwelton\Downloads'; 
+libname denorm 'C:\Users\lwelton\Downloads\2023-07-01'; 
 options compress=yes;
 options nofmterr;
 
@@ -21,6 +21,7 @@ libname tb 'T:\Tableau\SAS folders\SAS datasets\TB Program Data 2005 - 2022'; /*
 proc import datafile='T:\Tableau\NCD3 2.0\SAS Datasets\HIV 2015-2022 by quarter_clean.xlsx' out=HIV dbms=xlsx replace; run;
 /*proc import datafile='T:\Tableau\NCD3 2.0\SAS Datasets\CURRENT_USE_NCD3_2.0_HIV AIDS 2015-2022.xlsx' out=AIDS dbms=xlsx replace; sheet="AIDS"; run;*/
 
+proc import datafile='T:\Tableau\NCD3 2.0\Validation\MCU Report Case Comparison\Justin IDs_2022.xlsx' out=mcu dbms=xlsx replace; run;
 
 /*Sort NCD3 2.0 Metadata*/
 /*PROC SORT DATA=dgrps;*/
@@ -58,24 +59,24 @@ proc import datafile='T:\Tableau\NCD3 2.0\SAS Datasets\HIV 2015-2022 by quarter_
 
 																			/*Enteric*/
 
-proc sql;
-create table enteric as
-select owning_jd, type, type_desc, CLASSIFICATION_CLASSIFICATION, CASE_ID,
-input(mmwr_year, 4.) as MMWR_YEAR, MMWR_DATE_BASIS,
-YEAR(symptom_onset_date) as SYMPTOM_YEAR label= 'Year of Onset',
-COUNT(DISTINCT CASE_ID) as Case_Ct label = 'Counts', 
-symptom_onset_date, DATE_FOR_REPORTING, age,
-CALCULATED SYMPTOM_YEAR as Year label='Year',
-QTR(symptom_onset_date) as Quarter,
-from denorm.case
-where 2015 LE CALCULATED SYMPTOM_YEAR
-AND CLASSIFICATION_CLASSIFICATION in ("Suspect", "Confirmed", "Probable")
-and type in ("BOT", "BOTI", "CAMP", "CRYPT", "CYCLO", "ECOLI", 
-"FBOTHER", "CPERF", "FBPOIS", "STAPH", "HUS", "LIST", "SAL",
-"SHIG", "TRICH", "TYPHOID", "TYPHCAR", "VIBOTHER", "VIBVUL")
-AND REPORT_TO_CDC = 'Yes'
-order by TYPE_DESC, CALCULATED SYMPTOM_YEAR, OWNING_JD;
-quit;
+/*proc sql;*/
+/*create table enteric as*/
+/*select owning_jd, type, type_desc, CLASSIFICATION_CLASSIFICATION, CASE_ID,*/
+/*input(mmwr_year, 4.) as MMWR_YEAR, MMWR_DATE_BASIS,*/
+/*YEAR(symptom_onset_date) as SYMPTOM_YEAR label= 'Year of Onset',*/
+/*COUNT(DISTINCT CASE_ID) as Case_Ct label = 'Counts', */
+/*symptom_onset_date, DATE_FOR_REPORTING, age,*/
+/*CALCULATED SYMPTOM_YEAR as Year label='Year',*/
+/*QTR(symptom_onset_date) as Quarter,*/
+/*from denorm.case*/
+/*where 2015 LE CALCULATED SYMPTOM_YEAR*/
+/*AND CLASSIFICATION_CLASSIFICATION in ("Suspect", "Confirmed", "Probable")*/
+/*and type in ("BOT", "BOTI", "CAMP", "CRYPT", "CYCLO", "ECOLI", */
+/*"FBOTHER", "CPERF", "FBPOIS", "STAPH", "HUS", "LIST", "SAL",*/
+/*"SHIG", "TRICH", "TYPHOID", "TYPHCAR", "VIBOTHER", "VIBVUL")*/
+/*AND REPORT_TO_CDC = 'Yes'*/
+/*order by TYPE_DESC, CALCULATED SYMPTOM_YEAR, OWNING_JD;*/
+/*quit;*/
 
 
 proc sql;
@@ -129,8 +130,13 @@ quit;
 
 data entericTest;
 set enteric;
-where Year=2022;
+where Year=2022/* and disease_onset_qualifier ne 'Date symptoms began'*/;
 run;
+
+proc print data=entericTest(obs=1);
+run;
+
+
 proc sql;
 create table entericTest as
 select
@@ -242,8 +248,12 @@ quit;
 
 data HAITest;
 set HAI;
-where Year=2022;
+where Year=2022/* and disease_onset_qualifier ne 'Date symptoms began'*/;
 run;
+
+proc print data=HAITest(obs=1);
+run;
+
 proc sql;
 create table HAITest as
 select
@@ -435,7 +445,10 @@ quit;
 
 data resptest;
 set resp;
-where Year=2022;
+where Year=2022/* and disease_onset_qualifier ne 'Date symptoms began'*/;
+run;
+
+proc print data=resptest(obs=1);
 run;
 
 proc sql;
@@ -730,7 +743,7 @@ COUNT(DISTINCT CASE_ID) as Case_Ct label = 'Counts', age,
 QTR(symptom_onset_date) as Quarter,
 case 
     when MMWR_DATE_BASIS ne . then MMWR_DATE_BASIS
-	when SYMPTOM_ONSET_DATE ne . and /*Disease_Onset_qualifier="Date symptoms began"*/ then SYMPTOM_ONSET_DATE
+	when SYMPTOM_ONSET_DATE ne . /*and Disease_Onset_qualifier="Date symptoms began"*/ then SYMPTOM_ONSET_DATE
     when (SYMPTOM_ONSET_DATE = . /*or Disease_onset_qualifier ne "Date symptoms began"*/ ) and RPTI_SOURCE_DT_SUBMITTED  ne . then RPTI_SOURCE_DT_SUBMITTED
     else CREATE_DT
     end as EVENT_DATE format=DATE9., 
@@ -745,8 +758,12 @@ quit;
 
 data VPDTest;
 set VPD;
-where Year=2022;
+where Year=2022/* and disease_onset_qualifier ne 'Date symptoms began'*/;
 run;
+
+proc print data=VPDTest(obs=1);
+run;
+
 proc sql;
 create table VPDTest as
 select
@@ -827,8 +844,12 @@ quit;
 
 data zooTest;
 set zoo;
-where Year=2022;
+where Year=2022/* and disease_onset_qualifier = 'Date symptoms began'*/;
 run;
+
+proc print data=zooTest(obs=1);
+run;
+
 proc sql;
 create table zooTest as
 select
@@ -873,12 +894,63 @@ run;
 
 /*Union all diseases summary in period - add disease group and meta data*/
 
-data final;
-length Reporting_Date_Type $25;
-length Disease_Group $30;
-set ENTERIC HAI3 HEP4 RESP1 std_ALL VPD ZOO;
+/*data final;*/
+/*length Reporting_Date_Type $25;*/
+/*length Disease_Group $30;*/
+/*set ENTERIC HAI3 HEP4 RESP1 std_ALL VPD ZOO;*/
 /*agegroup=put(age, agegrp.);*/
+/*run;*/
+
+data final;
+set entericTest HAITest resptest VPDTest zooTest;
+event_id =input(case_id, 9.);
 run;
+
+
+proc sql;
+create table in_mcu_notin_ncd3 as
+select a.*
+from mcu a left join final b
+on a.event_id = b.event_id
+where b.event_id is null;
+
+proc sql;
+  select max(length(case_id))
+  from case;
+
+data case;
+set denorm.case;
+event_id =input(case_id, 23.);
+run;
+
+proc sql;
+create table in_mcu_case as
+select * from case
+where case.event_id in (select event_id from in_mcu_notin_ncd3);
+
+/*proc export data=in_mcu_case*/
+/*    outfile="T:\Tableau\NCD3 2.0\Validation\MCU Report Case Comparison\in_mcu_notin_ncd3"*/
+/*    dbms=xlsx    replace;*/
+/*run;*/
+
+/*proc sql;*/
+/*create table in_mcu_case as*/
+/*select * from case left join in_mcu_notin_ncd3*/
+/*on case.case_id = in_mcu_notin_ncd3.case_id;*/
+
+
+proc sql;
+create table in_ncd3_notin_mcu as
+select a.*
+from final a left join mcu b
+on a.event_id = b.event_id
+where b.event_id is null;
+
+/*proc export data=in_ncd3_notin_mcu*/
+/*    outfile="T:\Tableau\NCD3 2.0\Validation\MCU Report Case Comparison\in_ncd3_notin_mcu"*/
+/*    dbms=xlsx    replace;*/
+/*run;*/
+
 
 /*Deen added this to group Syphilis before case aggregation*/
 data final;
