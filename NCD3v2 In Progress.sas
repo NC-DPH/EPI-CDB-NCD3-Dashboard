@@ -1,4 +1,4 @@
-																/*LAST MODIFIED DATE: 6-12-24*/
+																/*LAST MODIFIED DATE: 7-25-24*/
 													/*LAST MODIFIED BY: LINDA YELTON (LWY) linda.yelton@dhhs.nc.gov*/
 /*Purpose: Script in progres to create the Data Source for the North Carolina Disease Data Dashboard (NCD3) next update*/
 /*	Internal server: https://internaldashboards.ncdhhs.gov/#/site/DPH/projects/400*/
@@ -6,7 +6,7 @@
 
 
 /*Must have access to NCEDSS_SAS(Z:) - CBD denorm server to run this program*/
-libname denorm 'Z:\20240601'; /*This can be updated as needed to produce most recent counts; M. Hilton provides a new extract monthly*/
+libname denorm 'Z:\20240806'; /*This can be updated as needed to produce most recent counts; M. Hilton provides a new extract monthly*/
 options compress=yes;
 options nofmterr;
 
@@ -17,24 +17,33 @@ options nofmterr;
 /* files to be used later in program */
 
 /* TB */
-libname tb 'T:\Tableau\SAS folders\SAS datasets\TB Program Data 2005 - 2022'; /*this will need to be refreshed as newer years of counts are needed*/
+libname tb 'T:\Tableau\SAS folders\SAS datasets\TB Program Data 2015 - 2023'; /*this will need to be refreshed as newer years of counts are needed*/
 
 /* HIV */
-proc import datafile='T:\Tableau\NCD3 2.0\SAS Datasets\HIV AIDS 2015-2024 by quarter_05092024_clean.xlsx' out=HIV dbms=xlsx replace; run;
+proc import datafile='T:\Tableau\NCD3 2.0\SAS Datasets\HIV AIDS 2015-2023.xlsx' out=HIV_annual dbms=xlsx replace; run;
+proc import datafile='T:\Tableau\NCD3 2.0\SAS Datasets\HIV AIDS 2015-2024 by quarter_05092024_clean.xlsx' out=HIV_quarterly dbms=xlsx replace; run;
+
 
 /* Annual and Quarterly County population */
-proc import datafile='T:\Tableau\NCD3 2.0\Population Denominators\July 1 2022 Vintage Estimates\County Census Pop_10_22.xlsx'
-out=county_pops dbms=xlsx replace; run;
+/*proc import datafile='T:\Tableau\NCD3 2.0\Population Denominators\July 1 2022 Vintage Estimates\County Census Pop_10_22.xlsx'*/
+/*out=county_pops dbms=xlsx replace; run;*/
 /* Demographic County population */
-proc import datafile='T:\Tableau\NCD3 2.0\Population Denominators\July 1 2022 Vintage Estimates\NCD3 Demo Dashboard\County Census Pop_10_22_LWY.xlsx'
-out=demo_county_pops dbms=xlsx replace; run;
+/*proc import datafile='T:\Tableau\NCD3 2.0\Population Denominators\July 1 2022 Vintage Estimates\NCD3 Demo Dashboard\County Census Pop_10_22_LWY.xlsx'*/
+/*out=demo_county_pops dbms=xlsx replace; run;*/
+
+proc import datafile='T:\Tableau\NCD3 2.0\Population Denominators\July 1 2023 Vintage Estimates\County Census Pop_15_23.xlsx'
+out=county_pops dbms=xlsx replace; run;
+
 
 /* Annual and Quarterly State population */
-proc import datafile='T:\Tableau\NCD3 2.0\Population Denominators\July 1 2022 Vintage Estimates\State Census Pop_10_22.xlsx'
-out=state_pops dbms=xlsx replace; run;
+/*proc import datafile='T:\Tableau\NCD3 2.0\Population Denominators\July 1 2022 Vintage Estimates\State Census Pop_10_22.xlsx'*/
+/*out=state_pops dbms=xlsx replace; run;*/
 /* Demographic State population */
-proc import datafile='T:\Tableau\NCD3 2.0\Population Denominators\July 1 2022 Vintage Estimates\NCD3 Demo Dashboard\State Census Pop_10_22_LWY.xlsx'
-out=demo_state_pops dbms=xlsx replace; run;
+/*proc import datafile='T:\Tableau\NCD3 2.0\Population Denominators\July 1 2022 Vintage Estimates\NCD3 Demo Dashboard\State Census Pop_10_22_LWY.xlsx'*/
+/*out=demo_state_pops dbms=xlsx replace; run;*/
+
+proc import datafile='T:\Tableau\NCD3 2.0\Population Denominators\July 1 2023 Vintage Estimates\State Census Pop_15_23.xlsx'
+out=state_pops dbms=xlsx replace; run;
 
 /*proc sql;*/
 /*create table types as*/
@@ -53,28 +62,6 @@ out=demo_state_pops dbms=xlsx replace; run;
 
 
 																			/*Enteric*/
-
-/*proc sql;*/
-/*create table enteric as*/
-/*select OWNING_JD, TYPE, TYPE_DESC, CLASSIFICATION_CLASSIFICATION, CASE_ID,*/
-/*	input(mmwr_year, 4.) as MMWR_YEAR, MMWR_DATE_BASIS,*/
-/*	YEAR(symptom_onset_date) as SYMPTOM_YEAR label= 'Year of Onset',*/
-/*	COUNT(DISTINCT CASE_ID) as Case_Ct label = 'Counts', */
-/*	symptom_onset_date, DATE_FOR_REPORTING,*/
-/*	CALCULATED SYMPTOM_YEAR as Year label='Year',*/
-/*	QTR(symptom_onset_date) as Quarter,*/
-/*	'Enteric' as Disease_Group,*/
-/*	'Symptom Onset Date' as Reporting_Date_Type,*/
-/*	AGE, GENDER, HISPANIC, RACE1, RACE2, RACE3, RACE4, RACE5, RACE6*/
-/*from denorm.case*/
-/*where 2015 LE CALCULATED SYMPTOM_YEAR*/
-/*	and CLASSIFICATION_CLASSIFICATION in ("Suspect", "Confirmed", "Probable")*/
-/*	and TYPE in ("BOT", "BOTI", "CAMP", "CRYPT", "CYCLO", "ECOLI", */
-/*	"FBOTHER", "CPERF", "FBPOIS", "STAPH", "HUS", "LIST", "SAL",*/
-/*	"SHIG", "TRICH", "TYPHOID", "TYPHCAR", "VIBOTHER", "VIBVUL")*/
-/*	and REPORT_TO_CDC = 'Yes'*/
-/*order by TYPE_DESC, CALCULATED SYMPTOM_YEAR, OWNING_JD;*/
-/*quit;*/
 
 
 /*The variable name for “Date of initial report to public health” in the DD tables is called “RPTI_SOURCE_DT_SUBMITTED”.*/
@@ -114,7 +101,7 @@ run;
 proc sql;
 create table Enteric as
 select OWNING_JD, TYPE, TYPE_DESC, CLASSIFICATION_CLASSIFICATION, CASE_ID,
-	input(mmwr_year, 4.) as MMWR_YEAR, MMWR_DATE_BASIS, DATE_FOR_REPORTING,
+	input(mmwr_year, 4.) as MMWR_YEAR, MMWR_DATE_BASIS, /*DATE_FOR_REPORTING,*/
 	count(distinct CASE_ID) as Case_Ct label = 'Counts', 
 	'Enteric' as Disease_Group,
 	AGE, GENDER, HISPANIC, RACE1, RACE2, RACE3, RACE4, RACE5, RACE6,
@@ -122,14 +109,14 @@ select OWNING_JD, TYPE, TYPE_DESC, CLASSIFICATION_CLASSIFICATION, CASE_ID,
 	    when MMWR_DATE_BASIS ne . then MMWR_DATE_BASIS
 		when SYMPTOM_ONSET_DATE ne . then SYMPTOM_ONSET_DATE
 	    when SYMPTOM_ONSET_DATE = . and RPTI_SOURCE_DT_SUBMITTED ne . then RPTI_SOURCE_DT_SUBMITTED
-	    else CREATE_DT
+	    else datepart(CREATE_DT)
 	    end as EVENT_DATE format=DATE9., 
-	case 
-	    when MMWR_DATE_BASIS ne . then 'MMWR_DATE_BASIS'
-		when SYMPTOM_ONSET_DATE ne . then 'SYMPTOM_ONSET_DATE'
-	    when SYMPTOM_ONSET_DATE = . and RPTI_SOURCE_DT_SUBMITTED ne . then 'RPTI_SOURCE_DT_SUBMITTED'
-	    else 'CREATE_DT'
-	    end as Reporting_Date_Type, 
+/*	case */
+/*	    when MMWR_DATE_BASIS ne . then 'MMWR_DATE_BASIS'*/
+/*		when SYMPTOM_ONSET_DATE ne . then 'SYMPTOM_ONSET_DATE'*/
+/*	    when SYMPTOM_ONSET_DATE = . and RPTI_SOURCE_DT_SUBMITTED ne . then 'RPTI_SOURCE_DT_SUBMITTED'*/
+/*	    else 'datepart(CREATE_DT)'*/
+/*	    end as Reporting_Date_Type, */
 	year(calculated EVENT_DATE) as Year, month(calculated EVENT_DATE) as Month, QTR(calculated EVENT_DATE) as Quarter,
 	SYMPTOM_ONSET_DATE, DISEASE_ONSET_QUALIFIER, RPTI_SOURCE_DT_SUBMITTED, CREATE_DT, STATUS, STATE
 from CASE_COMBO
@@ -142,52 +129,6 @@ order by TYPE_DESC, YEAR, OWNING_JD;
 
 
 																				/*HAI*/
-
-/*proc sql;*/
-/*create table HAI1 as*/
-/*select OWNING_JD, TYPE, TYPE_DESC, CLASSIFICATION_CLASSIFICATION, CASE_ID,*/
-/*	input(mmwr_year, 4.) as MMWR_YEAR, MMWR_DATE_BASIS,*/
-/*	YEAR(symptom_onset_date) as SYMPTOM_YEAR label= 'Year of Onset',*/
-/*	COUNT(DISTINCT CASE_ID) as Case_Ct label = 'Counts', */
-/*	symptom_onset_date, DATE_FOR_REPORTING,*/
-/*	input(mmwr_year, 4.) as Year label='Year',*/
-/*	QTR(MMWR_DATE_BASIS) as Quarter,*/
-/*	'MMWR Date' as Reporting_Date_Type,*/
-/*	AGE, GENDER, HISPANIC, RACE1, RACE2, RACE3, RACE4, RACE5, RACE6*/
-/*from denorm.case*/
-/*where mmwr_year in ('2015', '2016', '2017', '2018', '2019', '2020', '2021', '2022', '2023')*/
-/*	and CLASSIFICATION_CLASSIFICATION in ("Confirmed", "Probable") */
-/*	and TYPE in ("CAURIS", "CRE", "SAUR", "TSS", "TSSS")*/
-/*"STRA"*/
-/*	and REPORT_TO_CDC = 'Yes'*/
-/*order by TYPE_DESC, MMWR_Year, OWNING_JD;*/
-/*quit;*/
-/**/
-/*proc sql;*/
-/*create table HAI2 as*/
-/*select OWNING_JD, TYPE, TYPE_DESC, CLASSIFICATION_CLASSIFICATION, CASE_ID,*/
-/*	COUNT(DISTINCT CASE_ID) as Case_Ct label = 'Counts',*/
-/*	input(mmwr_year, 4.) as MMWR_YEAR, MMWR_DATE_BASIS,*/
-/*	YEAR(symptom_onset_date) as SYMPTOM_YEAR label= 'Year of Onset',*/
-/*	symptom_onset_date, DATE_FOR_REPORTING,*/
-/*	CALCULATED SYMPTOM_YEAR as Year label='Year',*/
-/*	QTR(symptom_onset_date) as Quarter,*/
-/*	'Symptom Onset Date' as Reporting_Date_Type,*/
-/*	AGE, GENDER, HISPANIC, RACE1, RACE2, RACE3, RACE4, RACE5, RACE6*/
-/*from denorm.case*/
-/*where 2015 LE CALCULATED SYMPTOM_YEAR */
-/*	and CLASSIFICATION_CLASSIFICATION in ("Confirmed", "Probable") */
-/*	and TYPE = ("STRA")*/
-/*	and REPORT_TO_CDC = 'Yes'*/
-/*order by TYPE_DESC, calculated symptom_year, OWNING_JD;*/
-/*quit;*/
-/**/
-/*Combine all HAI data sets*/
-/*data HAI3;*/
-/*length Reporting_Date_Type $25;*/
-/*set HAI1 HAI2;*/
-/*Disease_Group='Healthcare Acquired Infection';*/
-/*run;*/
 
 proc sql;
 create table CASE_COMBO as
@@ -218,7 +159,7 @@ run;
 proc sql;
 create table HAI as
 select OWNING_JD, TYPE, TYPE_DESC, CLASSIFICATION_CLASSIFICATION, CASE_ID,
-	input(MMWR_YEAR, 4.) as MMWR_YEAR, MMWR_DATE_BASIS, DATE_FOR_REPORTING,
+	input(MMWR_YEAR, 4.) as MMWR_YEAR, MMWR_DATE_BASIS, 
 	count(distinct CASE_ID) as Case_Ct label = 'Counts', 
 	'Healthcare Acquired Infection' as Disease_Group,
 	AGE, GENDER, HISPANIC, RACE1, RACE2, RACE3, RACE4, RACE5, RACE6,
@@ -226,14 +167,8 @@ select OWNING_JD, TYPE, TYPE_DESC, CLASSIFICATION_CLASSIFICATION, CASE_ID,
 	    when MMWR_DATE_BASIS ne . then MMWR_DATE_BASIS
 		when SYMPTOM_ONSET_DATE ne . then SYMPTOM_ONSET_DATE
 	    when (SYMPTOM_ONSET_DATE = . ) and RPTI_SOURCE_DT_SUBMITTED  ne . then RPTI_SOURCE_DT_SUBMITTED
-	    else CREATE_DT
+	    else datepart(CREATE_DT)
 	    end as EVENT_DATE format=DATE9., 
-	case 
-	    when MMWR_DATE_BASIS ne . then 'MMWR_DATE_BASIS'
-		when SYMPTOM_ONSET_DATE ne . then 'SYMPTOM_ONSET_DATE'
-	    when SYMPTOM_ONSET_DATE = . and RPTI_SOURCE_DT_SUBMITTED ne . then 'RPTI_SOURCE_DT_SUBMITTED'
-	    else 'CREATE_DT'
-	    end as Reporting_Date_Type, 
 	year(calculated EVENT_DATE) as Year, month(calculated EVENT_DATE) as Month, QTR(calculated EVENT_DATE) as Quarter,
 	SYMPTOM_ONSET_DATE, DISEASE_ONSET_QUALIFIER, RPTI_SOURCE_DT_SUBMITTED, CREATE_DT, STATUS, STATE
 from CASE_COMBO
@@ -246,71 +181,6 @@ order by TYPE_DESC, YEAR, OWNING_JD;
 
 
 															/*Hep Table 1 - MMWR_YEAR*/
-/*proc sql;*/
-/*create table hep1 as*/
-/*select OWNING_JD, TYPE, TYPE_DESC, CLASSIFICATION_CLASSIFICATION, CASE_ID,*/
-/*	COUNT(DISTINCT CASE_ID) as Case_Ct label = 'Counts',*/
-/*	input(mmwr_year, 4.) as MMWR_YEAR,  MMWR_DATE_BASIS, symptom_onset_date, deduplication_date, DATE_FOR_REPORTING,*/
-/*	input(mmwr_year, 4.) as Year label='Year',*/
-/*	QTR(MMWR_DATE_BASIS) as Quarter,*/
-/*	'MMWR Date' as Reporting_Date_Type,*/
-/*	AGE, GENDER, HISPANIC, RACE1, RACE2, RACE3, RACE4, RACE5, RACE6*/
-/*from denorm.case*/
-/*where mmwr_year in ('2015', '2016', '2017', '2018', '2019', '2020', '2021', '2022', '2023')*/
-/*	and CLASSIFICATION_CLASSIFICATION in ("Confirmed", "Probable") */
-/*	and TYPE in ("HEPB_C", "HEPB_P")*/
-/*	and REPORT_TO_CDC = 'Yes'*/
-/*order by TYPE_DESC, MMWR_Year, OWNING_JD;*/
-/*quit;*/
-
-															/*HEP TABLE 2 - SYMPTOM_YEAR*/
-/*proc sql;*/
-/*create table hep2 as*/
-/*select OWNING_JD, TYPE, TYPE_DESC, CLASSIFICATION_CLASSIFICATION, CASE_ID,*/
-/*	COUNT(DISTINCT CASE_ID) as Case_Ct label = 'Counts',*/
-/*	input(mmwr_year, 4.) as MMWR_YEAR, MMWR_DATE_BASIS, REPORT_TO_CDC,*/
-/*	YEAR(symptom_onset_date) as SYMPTOM_YEAR label= 'Year of Onset',*/
-/*	DATE_FOR_REPORTING, symptom_onset_date, deduplication_date,*/
-/*	CALCULATED SYMPTOM_YEAR as Year label='Year',*/
-/*	QTR(symptom_onset_date) as Quarter,*/
-/*	'Symptom Onset Date' as Reporting_Date_Type,*/
-/*	AGE, GENDER, HISPANIC, RACE1, RACE2, RACE3, RACE4, RACE5, RACE6*/
-/*from denorm.case*/
-/*where 2015 LE CALCULATED SYMPTOM_YEAR */
-/*where calculated SYMPTOM_YEAR GE 2022*/ 
-/*	and CLASSIFICATION_CLASSIFICATION in ("Confirmed", "Probable") */
-/*	and TYPE in ("HEPA", "HEPB_A", "HEPC", "HEPB_U")*/
-/*	and REPORT_TO_CDC = 'Yes'*/
-/*and status = 'closed'*/
-/*order by TYPE_DESC, SYMPTOM_YEAR, OWNING_JD;*/
-/*quit;*/
-
-															/*HEP TABLE 3 - DEDUP_YEAR*/
-/*proc sql;*/
-/*create table hep3 as*/
-/*select OWNING_JD, TYPE, TYPE_DESC, CLASSIFICATION_CLASSIFICATION, CASE_ID,*/
-/*	COUNT(DISTINCT CASE_ID) as Case_Ct label = 'Counts',*/
-/*	input(mmwr_year, 4.) as MMWR_YEAR, MMWR_DATE_BASIS, */
-/*	YEAR(DEDUPLICATION_DATE) as DEDUP_YEAR label= 'Year of DEDUP',*/
-/*	REPORT_TO_CDC, symptom_onset_date, DATE_FOR_REPORTING,*/
-/*	CALCULATED DEDUP_YEAR as Year label='Year',*/
-/*	QTR(DEDUPLICATION_DATE) as Quarter,*/
-/*	'Deduplication Date' as Reporting_Date_Type,*/
-/*	AGE, GENDER, HISPANIC, RACE1, RACE2, RACE3, RACE4, RACE5, RACE6*/
-/*from denorm.case*/
-/*where 2015 LE CALCULATED DEDUP_YEAR */
-/*	and CLASSIFICATION_CLASSIFICATION in ("Confirmed", "Probable") */
-/*	and TYPE in ("HEPCC")*/
-/*	and REPORT_TO_CDC = 'Yes'*/
-/*order by TYPE_DESC, dedup_YEAR, OWNING_JD;*/
-/*quit;*/
-
-/*Combine all hep data sets*/
-/*data hep4;*/
-/*length Reporting_Date_Type $25;*/
-/*set hep1 hep2 hep3;*/
-/*Disease_Group='Hepatitis';*/
-/*run;*/
 
 proc sql;
 create table CASE_COMBO as
@@ -326,7 +196,7 @@ quit;
 proc sql;
 create table Hep as
 	select OWNING_JD, TYPE, TYPE_DESC, CLASSIFICATION_CLASSIFICATION, CASE_ID,
-	input(MMWR_YEAR, 4.) as MMWR_YEAR, MMWR_DATE_BASIS, DATE_FOR_REPORTING,
+	input(MMWR_YEAR, 4.) as MMWR_YEAR, MMWR_DATE_BASIS, 
 	count(distinct CASE_ID) as Case_Ct label = 'Counts', 
 	'Hepatitis' as Disease_Group,
 	AGE, GENDER, HISPANIC, RACE1, RACE2, RACE3, RACE4, RACE5, RACE6,
@@ -334,14 +204,8 @@ create table Hep as
 	    when MMWR_DATE_BASIS ne . then MMWR_DATE_BASIS
 		when SYMPTOM_ONSET_DATE ne . then SYMPTOM_ONSET_DATE
 	    when SYMPTOM_ONSET_DATE = . and RPTI_SOURCE_DT_SUBMITTED  ne . then RPTI_SOURCE_DT_SUBMITTED
-	    else CREATE_DT
+	    else datepart(CREATE_DT)
 	    end as EVENT_DATE format=DATE9., 
-	case 
-	    when MMWR_DATE_BASIS ne . then 'MMWR_DATE_BASIS'
-		when SYMPTOM_ONSET_DATE ne . then 'SYMPTOM_ONSET_DATE'
-	    when SYMPTOM_ONSET_DATE = . and RPTI_SOURCE_DT_SUBMITTED ne . then 'RPTI_SOURCE_DT_SUBMITTED'
-	    else 'CREATE_DT'
-	    end as Reporting_Date_Type, 
 	year(calculated EVENT_DATE) as Year, month(calculated EVENT_DATE) as Month, QTR(calculated EVENT_DATE) as Quarter,
 	SYMPTOM_ONSET_DATE, DISEASE_ONSET_QUALIFIER, RPTI_SOURCE_DT_SUBMITTED, CREATE_DT, STATUS, STATE
 from CASE_COMBO
@@ -352,24 +216,6 @@ order by TYPE_DESC, YEAR, OWNING_JD;
 
 
 																	/*RESPIRATORY 1*/
-/*proc sql;*/
-/*create table RESP1 as*/
-/*select OWNING_JD, TYPE, TYPE_DESC, CLASSIFICATION_CLASSIFICATION, CASE_ID,*/
-/*	input(mmwr_year, 4.) as MMWR_YEAR, MMWR_DATE_BASIS, DATE_FOR_REPORTING,*/
-/*	COUNT(DISTINCT CASE_ID) as Case_Ct label = 'Counts', */
-/*	YEAR(symptom_onset_date) as SYMPTOM_YEAR label= 'Year of Onset', symptom_onset_date,*/
-/*	CALCULATED SYMPTOM_YEAR as Year label='Year',*/
-/*	QTR(symptom_onset_date) as Quarter,*/
-/*	'Symptom Onset Date' as Reporting_Date_Type,*/
-/*	'Respiratory' as Disease_Group,*/
-/*	AGE, GENDER, HISPANIC, RACE1, RACE2, RACE3, RACE4, RACE5, RACE6*/
-/*from denorm.case*/
-/*where 2015 LE CALCULATED SYMPTOM_YEAR */
-/*	and CLASSIFICATION_CLASSIFICATION in ("Confirmed", "Probable") */
-/*	and TYPE in ("FLU", "FLUD", "FLUDA", "LEG")*/
-/*	and REPORT_TO_CDC = 'Yes'*/
-/*order by TYPE_DESC, SYMPTOM_YEAR, OWNING_JD;*/
-/*quit;*/
 
 proc sql;
 create table CASE_COMBO as
@@ -400,7 +246,7 @@ run;
 proc sql;
 create table Resp as
 select OWNING_JD, TYPE, TYPE_DESC, CLASSIFICATION_CLASSIFICATION, CASE_ID,
-	input(MMWR_YEAR, 4.) as MMWR_YEAR, MMWR_DATE_BASIS, DATE_FOR_REPORTING,
+	input(MMWR_YEAR, 4.) as MMWR_YEAR, MMWR_DATE_BASIS, 
 	count(distinct CASE_ID) as Case_Ct label = 'Counts', 
 	'Respiratory' as Disease_Group,
 	AGE, GENDER, HISPANIC, RACE1, RACE2, RACE3, RACE4, RACE5, RACE6,
@@ -408,14 +254,8 @@ select OWNING_JD, TYPE, TYPE_DESC, CLASSIFICATION_CLASSIFICATION, CASE_ID,
 	    when MMWR_DATE_BASIS ne . then MMWR_DATE_BASIS
 		when SYMPTOM_ONSET_DATE ne . then SYMPTOM_ONSET_DATE
 	    when SYMPTOM_ONSET_DATE = . and RPTI_SOURCE_DT_SUBMITTED  ne . then RPTI_SOURCE_DT_SUBMITTED
-	    else CREATE_DT
+	    else datepart(CREATE_DT)
 	    end as EVENT_DATE format=DATE9., 
-	case 
-	    when MMWR_DATE_BASIS ne . then 'MMWR_DATE_BASIS'
-		when SYMPTOM_ONSET_DATE ne . then 'SYMPTOM_ONSET_DATE'
-	    when SYMPTOM_ONSET_DATE = . and RPTI_SOURCE_DT_SUBMITTED ne . then 'RPTI_SOURCE_DT_SUBMITTED'
-	    else 'CREATE_DT'
-	    end as Reporting_Date_Type, 
 	year(calculated EVENT_DATE) as Year, month(calculated EVENT_DATE) as Month, QTR(calculated EVENT_DATE) as Quarter,
 	SYMPTOM_ONSET_DATE, DISEASE_ONSET_QUALIFIER, RPTI_SOURCE_DT_SUBMITTED, CREATE_DT, STATUS, STATE
 from CASE_COMBO
@@ -435,13 +275,13 @@ select
 	propcase(substr(county, 1, length(county)-7)) as County_substr,
 	'TB' as Disease,
 	'Tuberculosis' as Disease_Group,
-	'MMWR Year' as Reporting_Date_Type,
+/*	'MMWR Year' as Reporting_Date_Type,*/
 	COUNT as Case_Ct label = 'Counts',
 /*	COUNT as Confirmed label='Confirmed Count',*/
 /*	. as Probable label='Probable Count',*/
 	COUNT as Cases_County_Annual label='Cases_County_Annual'
-from tb.tb_cty_cts_2005_2022
-where 2015 LE year
+from tb.tb_cty_cts_2015_2023
+/*where 2015 LE year*/
 order by year;
 
 proc iml;
@@ -463,10 +303,10 @@ select OWNING_JD, TYPE_DESC, CLASSIFICATION_CLASSIFICATION, CASE_ID,
 	COUNT(DISTINCT CASE_ID) as Case_Ct label = 'Counts',
 	input(mmwr_year, 4.) as MMWR_YEAR, MMWR_DATE_BASIS, symptom_onset_date, 
 	year(DEDUPLICATION_DATE) AS DEDUP_YEAR LABEL = 'YEAR OF DEDUPLICATION',
-	DEDUPLICATION_DATE, DATE_FOR_REPORTING,
+	DEDUPLICATION_DATE, 
 	CALCULATED DEDUP_YEAR as Year label='Year',
 	QTR(DEDUPLICATION_DATE) as Quarter,
-	'Deduplication Date' as Reporting_Date_Type,
+/*	'Deduplication Date' as Reporting_Date_Type,*/
 	AGE, GENDER, HISPANIC, RACE1, RACE2, RACE3, RACE4, RACE5, RACE6
 from denorm.case
 /*where 2015 LE CALCULATED DEDUP_YEAR */
@@ -485,11 +325,11 @@ proc sql;
 create table STD as
 select OWNING_JD, TYPE_DESC, CLASSIFICATION_CLASSIFICATION, CASE_ID,
 	COUNT(DISTINCT CASE_ID) as Case_Ct label = 'Counts',
-	input(mmwr_year, 4.) as MMWR_YEAR, MMWR_DATE_BASIS, DEDUPLICATION_DATE, DATE_FOR_REPORTING,
+	input(mmwr_year, 4.) as MMWR_YEAR, MMWR_DATE_BASIS, DEDUPLICATION_DATE, 
 	YEAR(symptom_onset_date) as SYMPTOM_YEAR label= 'Year of Onset', symptom_onset_date,
 	CALCULATED SYMPTOM_YEAR as Year label='Year',
 	QTR(symptom_onset_date) as Quarter,
-	'Symptom Onset Date' as Reporting_Date_Type,
+/*	'Symptom Onset Date' as Reporting_Date_Type,*/
 	AGE, GENDER, HISPANIC, RACE1, RACE2, RACE3, RACE4, RACE5, RACE6
 from denorm.case
 /*where 2015 LE CALCULATED SYMPTOM_YEAR*/
@@ -507,8 +347,8 @@ create table syph1 as
 select OWNING_JD, TYPE_DESC, CLASSIFICATION_CLASSIFICATION, CASE_ID, symptom_onset_date,
 	COUNT(DISTINCT CASE_ID) as Case_Ct label = 'Counts',
 	input(mmwr_year, 4.) as MMWR_YEAR, MMWR_DATE_BASIS,
-	'LHD Diagnosis Date' as Reporting_Date_Type,
-	year(LHD_DIAGNOSIS_DATE) AS LHD_DX_YR LABEL = 'LHD DX YEAR', LHD_DIAGNOSIS_DATE, DATE_FOR_REPORTING,
+/*	'LHD Diagnosis Date' as Reporting_Date_Type,*/
+	year(LHD_DIAGNOSIS_DATE) AS LHD_DX_YR LABEL = 'LHD DX YEAR', LHD_DIAGNOSIS_DATE,
 	CALCULATED LHD_DX_YR as Year label='Year',
 	QTR(LHD_DIAGNOSIS_DATE) as Quarter,
 	AGE, GENDER, HISPANIC, RACE1, RACE2, RACE3, RACE4, RACE5, RACE6
@@ -526,8 +366,8 @@ proc sql;
 create table syph2 as
 select OWNING_JD, TYPE_DESC, CLASSIFICATION_CLASSIFICATION, CASE_ID, symptom_onset_date,
 	input(mmwr_year, 4.) as MMWR_YEAR, MMWR_DATE_BASIS,
-	'Birth Date' as Reporting_Date_Type,
-	YEAR(BIRTH_DATE) as DOB label = 'YEAR OF BIRTH', LHD_DIAGNOSIS_DATE, DATE_FOR_REPORTING,
+/*	'Birth Date' as Reporting_Date_Type,*/
+	YEAR(BIRTH_DATE) as DOB label = 'YEAR OF BIRTH', LHD_DIAGNOSIS_DATE,
 	CALCULATED DOB as Year label='Year',
 	QTR(BIRTH_DATE) as Quarter,
 	AGE, GENDER, HISPANIC, RACE1, RACE2, RACE3, RACE4, RACE5, RACE6
@@ -550,17 +390,18 @@ Disease_Group='Sexually Transmitted';
 run;
 
 
-/*HIV/AIDS; File provided by Jason Maxwell on 3/12/24, analyst for HIV/STD program; jason.maxwell@dhhs.nc.gov*/
+/*HIV/AIDS; File provided by Jason Maxwell, analyst for HIV/STD program; jason.maxwell@dhhs.nc.gov*/
 
 /*HIV*/
 data hiv1;
 length Disease $4;
-set HIV;
+set HIV_quarterly;
 Disease='HIV';
-Reporting_Date_Type='Earliest Diagnosis Date';
+/*Reporting_Date_Type='Earliest Diagnosis Date';*/
 Disease_Group='Sexually Transmitted';
 County_substr = propcase(OWNING_JD);
 Cases_County_Quarterly=Cases;
+where OWNING_JD ne "NC TOTAL";
 run;
 
 proc iml;
@@ -570,13 +411,21 @@ County_substr = "McDowell";
 replace all var {County_substr} where(County_substr="Mcdowell");
 close hiv1;
 
-/*proc transpose data=hiv1 out=hiv1(drop=_name_ rename=(col1=Counts));*/
-/*by TYPE_DESC OWNING_JD;*/
+/*Quarterly:*/
+/*proc sort data=hiv1;*/
+/*by Disease OWNING_JD Disease_Group County_substr /*Cases_County_Quarterly;*/
+/*run;*/
+/**/
+/*proc transpose data=hiv1/*(drop=Cases)*/
+/*out=hiv1(drop=_NAME_ rename=(col1=Cases_County_Annual  _LABEL_=Year_Char));*/
+/*var _2015 - _2023;*/
+/*by Disease OWNING_JD Disease_Group County_substr /*Cases_County_Quarterly;*/
 /*run;*/
 
 proc sql;
 create table hiv1 as
 select *,
+/*	input(Year_Char,4.) as Year,*/
 	sum(Cases_County_Quarterly) as Cases_County_Annual
 from hiv1
 group by Year, County_substr
@@ -585,24 +434,7 @@ order by Year desc, County_substr, Quarter;
 
 
 																/*VPD*/
-/*proc sql;*/
-/*create table VPD as*/
-/*select OWNING_JD, TYPE, TYPE_DESC, CLASSIFICATION_CLASSIFICATION, CASE_ID,*/
-/*	input(mmwr_year, 4.) as MMWR_YEAR, MMWR_DATE_BASIS,*/
-/*	COUNT(DISTINCT CASE_ID) as Case_Ct label = 'Counts',*/
-/*	'Symptom Onset Date' as Reporting_Date_Type,*/
-/*	YEAR(symptom_onset_date) as SYMPTOM_YEAR label='Year of Onset', symptom_onset_date, DATE_FOR_REPORTING,*/
-/*	calculated SYMPTOM_YEAR as Year label='Year',*/
-/*	QTR(symptom_onset_date) as Quarter,*/
-/*	'Vaccine Preventable' as Disease_Group,*/
-/*	AGE, GENDER, HISPANIC, RACE1, RACE2, RACE3, RACE4, RACE5, RACE6*/
-/*from denorm.case*/
-/*where 2015 LE calculated SYMPTOM_YEAR */
-/*	and CLASSIFICATION_CLASSIFICATION in ("Confirmed", "Probable") */
-/*	and TYPE in ("DIP", "HFLU", "MEAS", "MENP", "NMEN", "MPOX", "MUMPS", "PERT", "POL", "AFM", "RUB", "RUBCONG", "TET", "VAC", "VARICELLA")*/
-/*	and REPORT_TO_CDC = 'Yes'*/
-/*order by TYPE_DESC, OWNING_JD, SYMPTOM_YEAR;*/
-/*quit;*/
+
 
 proc sql;
 create table CASE_COMBO as
@@ -633,7 +465,7 @@ run;
 proc sql;
 create table VPD as
 select OWNING_JD, TYPE, TYPE_DESC, CLASSIFICATION_CLASSIFICATION, CASE_ID,
-	input(MMWR_YEAR, 4.) as MMWR_YEAR, MMWR_DATE_BASIS, DATE_FOR_REPORTING,
+	input(MMWR_YEAR, 4.) as MMWR_YEAR, MMWR_DATE_BASIS, 
 	count(distinct CASE_ID) as Case_Ct label = 'Counts', 
 	'Vaccine Preventable' as Disease_Group,
 	AGE, GENDER, HISPANIC, RACE1, RACE2, RACE3, RACE4, RACE5, RACE6,
@@ -641,14 +473,8 @@ select OWNING_JD, TYPE, TYPE_DESC, CLASSIFICATION_CLASSIFICATION, CASE_ID,
 	    when MMWR_DATE_BASIS ne . then MMWR_DATE_BASIS
 		when SYMPTOM_ONSET_DATE ne . then SYMPTOM_ONSET_DATE
 	    when SYMPTOM_ONSET_DATE = . and RPTI_SOURCE_DT_SUBMITTED ne . then RPTI_SOURCE_DT_SUBMITTED
-	    else CREATE_DT
+	    else datepart(CREATE_DT)
 	    end as EVENT_DATE format=DATE9., 
-	case 
-	    when MMWR_DATE_BASIS ne . then 'MMWR_DATE_BASIS'
-		when SYMPTOM_ONSET_DATE ne . then 'SYMPTOM_ONSET_DATE'
-	    when SYMPTOM_ONSET_DATE = . and RPTI_SOURCE_DT_SUBMITTED ne . then 'RPTI_SOURCE_DT_SUBMITTED'
-	    else 'CREATE_DT'
-	    end as Reporting_Date_Type, 
 	year(calculated EVENT_DATE) as Year, month(calculated EVENT_DATE) as Month, QTR(calculated EVENT_DATE) as Quarter,
 	SYMPTOM_ONSET_DATE, DISEASE_ONSET_QUALIFIER, RPTI_SOURCE_DT_SUBMITTED, CREATE_DT, STATUS, STATE
 from CASE_COMBO
@@ -658,28 +484,9 @@ where calculated EVENT_DATE >= '01JAN2015'd and calculated EVENT_DATE <= "&EndDa
 order by TYPE_DESC, YEAR, OWNING_JD;
 
 
+
 																/*ZOONOTIC*/
 
-/*proc sql;*/
-/*create table zoo as*/
-/*select OWNING_JD, TYPE, TYPE_DESC, CLASSIFICATION_CLASSIFICATION, CASE_ID,*/
-/*	COUNT(DISTINCT CASE_ID) as Case_Ct label = 'Counts',*/
-/*	input(mmwr_year, 4.) as MMWR_YEAR, MMWR_DATE_BASIS,*/
-/*	'Symptom Onset Date' as Reporting_Date_Type,*/
-/*	YEAR(symptom_onset_date) as SYMPTOM_YEAR label= 'Year of Onset', symptom_onset_date, DATE_FOR_REPORTING,*/
-/*	calculated SYMPTOM_YEAR as Year label='Year',*/
-/*	QTR(symptom_onset_date) as Quarter,*/
-/*	'Vector-Borne/Zoonotic' as Disease_Group,*/
-/*	AGE, GENDER, HISPANIC, RACE1, RACE2, RACE3, RACE4, RACE5, RACE6*/
-/*from denorm.case*/
-/*where 2015 LE calculated SYMPTOM_YEAR */
-/*	and CLASSIFICATION_CLASSIFICATION in ("Confirmed", "Probable") */
-/*	and TYPE in ("ANTH", "ARB", "BRU", "CHIKV", "CJD", "DENGUE", "EHR", "HGE", "EEE", "HME", */
-/*	"LAC", "LEP", "WNI", "LEPTO", "LYME", "MAL", "PSTT","PLAG", "QF", "RMSF", "RAB", "TUL", "TYPHUS", */
-/*	"YF", "ZIKA", "VHF")*/
-/*	and REPORT_TO_CDC = 'Yes' */
-/*order by TYPE_DESC, SYMPTOM_YEAR, MMWR_Year, OWNING_JD;*/
-/*quit;*/
 
 proc sql;
 create table CASE_COMBO as
@@ -712,7 +519,7 @@ run;
 proc sql;
 create table zoo as
 select OWNING_JD, TYPE, TYPE_DESC, CLASSIFICATION_CLASSIFICATION, CASE_ID,
-	input(MMWR_YEAR, 4.) as MMWR_YEAR, MMWR_DATE_BASIS, DATE_FOR_REPORTING,
+	input(MMWR_YEAR, 4.) as MMWR_YEAR, MMWR_DATE_BASIS,
 	count(distinct CASE_ID) as Case_Ct label = 'Counts', 
 	'Vector-Borne/Zoonotic' as Disease_Group,
 	AGE, GENDER, HISPANIC, RACE1, RACE2, RACE3, RACE4, RACE5, RACE6,
@@ -720,14 +527,8 @@ select OWNING_JD, TYPE, TYPE_DESC, CLASSIFICATION_CLASSIFICATION, CASE_ID,
 	    when MMWR_DATE_BASIS ne . then MMWR_DATE_BASIS
 		when SYMPTOM_ONSET_DATE ne . /*and Disease_Onset_qualifier="Date symptoms began"*/ then SYMPTOM_ONSET_DATE
 	    when (SYMPTOM_ONSET_DATE = . /*or Disease_onset_qualifier ne "Date symptoms began"*/ ) and RPTI_SOURCE_DT_SUBMITTED  ne . then RPTI_SOURCE_DT_SUBMITTED
-	    else CREATE_DT
+	    else datepart(CREATE_DT)
 	    end as EVENT_DATE format=DATE9., 
-	case 
-	    when MMWR_DATE_BASIS ne . then 'MMWR_DATE_BASIS'
-		when SYMPTOM_ONSET_DATE ne . then 'SYMPTOM_ONSET_DATE'
-	    when SYMPTOM_ONSET_DATE = . and RPTI_SOURCE_DT_SUBMITTED ne . then 'RPTI_SOURCE_DT_SUBMITTED'
-	    else 'CREATE_DT'
-	    end as Reporting_Date_Type, 
 	year(calculated EVENT_DATE) as Year, month(calculated EVENT_DATE) as Month, QTR(calculated EVENT_DATE) as Quarter,
 	SYMPTOM_ONSET_DATE, DISEASE_ONSET_QUALIFIER, RPTI_SOURCE_DT_SUBMITTED, CREATE_DT, STATUS, STATE
 from CASE_COMBO
@@ -743,7 +544,6 @@ order by TYPE_DESC, YEAR, OWNING_JD;
 /*Union all diseases summary in period - add disease group and meta data*/
 
 data final;
-length Reporting_Date_Type $25;
 length Disease_Group $30;
 set Enteric HAI Hep Resp std_ALL VPD zoo;
 County_substr=substr(OWNING_JD, 1, length(OWNING_JD)-7);
@@ -788,19 +588,15 @@ proc sql;
 create table temp as
 select *
 from county_pops
-where year=2022;
+where year=2023;
 
-data temp_2023;
-set temp;
-year=2023;
-run;
 data temp_2024;
 set temp;
 year=2024;
 run;
 
 data county_pops;
-set county_pops temp_2023 temp_2024;
+set county_pops temp_2024;
 COUNTY = propcase(COUNTY);
 run;
 
@@ -822,16 +618,16 @@ create table agg_annual as
 select
 	Year,  County_substr,
 /*	OWNING_JD label='County' format=$30. length=30,*/
-	Disease, Reporting_Date_Type, Disease_Group,
+	Disease, /*Reporting_Date_Type,*/ Disease_Group,
 /*	sum(case when CLASSIFICATION_CLASSIFICATION='Confirmed' then 1 else 0 end) as Confirmed label='Confirmed Count',*/
 /*	sum(case when CLASSIFICATION_CLASSIFICATION='Probable' then 1 else 0 end) as Probable label='Probable Count',*/
 	count(distinct CASE_ID) as Cases_County_Annual
 from final
-group by Year, County_substr, Disease, Reporting_Date_Type, Disease_Group
+group by Year, County_substr, Disease, /*Reporting_Date_Type,*/ Disease_Group
 order by Year desc, County_substr, Disease;
 
 
-proc sort data=hiv1 out=hiv_annual (keep=Disease County_substr Year Reporting_Date_Type Disease_Group Disease Cases_County_Annual) nodupkey;
+proc sort data=hiv1 out=hiv_annual (keep=Disease County_substr Year Disease_Group Disease Cases_County_Annual) nodupkey;
 by Year County_substr;
 run;
 
@@ -845,17 +641,17 @@ create table agg_quarter as
 select
 	Year, Quarter, County_substr,
 /*	OWNING_JD label='County' format=$30. length=30, */
-	Disease, Reporting_Date_Type, Disease_Group,
+	Disease, Disease_Group,
 /*	sum(case when CLASSIFICATION_CLASSIFICATION='Confirmed' then 1 else 0 end) as Confirmed_Quarterly label='Confirmed Count Quarterly',*/
 /*	sum(case when CLASSIFICATION_CLASSIFICATION='Probable' then 1 else 0 end) as Probable_Quarterly label='Probable Count Quarterly',*/
 	count(distinct CASE_ID) as Cases_County_Quarterly
 from final
-group by Year, Quarter, County_substr, Disease, Reporting_Date_Type, Disease_Group
+group by Year, Quarter, County_substr, Disease, Disease_Group
 order by Year desc, Quarter, County_substr, Disease;
 
 data agg_quarter;
 set agg_quarter
-	hiv1(keep=Year Quarter County_Substr Disease Reporting_Date_Type Disease_Group Cases_County_Quarterly);
+	hiv1(keep=Year Quarter County_Substr Disease Disease_Group Cases_County_Quarterly);
 run;
 
 /*Add rows for when no cases were reported for the county/year/disease*/
@@ -865,7 +661,7 @@ by COUNTY;
 run;
 
 data unique_diseases;
-set agg_quarter;
+set agg_annual;
 run;
 proc sort data=unique_diseases out=unique_diseases (keep=Disease Disease_Group) nodupkey ;
 by Disease;
@@ -884,7 +680,7 @@ do Quarter=1 to 4; output; end;
 run;
 
 proc sql;
-create table unique_table_a as
+create table unique_table/*_a*/ as
 select unique_counties.*, unique_diseases.Disease, unique_years.* , unique_quarters.*
 from unique_counties cross join unique_diseases cross join unique_years cross join unique_quarters;
 
@@ -892,7 +688,7 @@ proc sql;
 create table agg_quarter as
 select coalesce(a.Year,b.Year) as Year, coalesce(a.Quarter,b.Quarter) as Quarter, coalesce(a.Disease,b.Disease) as Disease,
 	coalesce(a.County_substr,b.COUNTY) as County_substr, a.*
-from agg_quarter a full join unique_table_a b
+from agg_quarter a full join unique_table/*_a*/ b
 	on a.year=b.year and a.Quarter=b.Quarter and a.Disease=b.Disease and a.County_substr=b.COUNTY;
 
 proc sql;
@@ -900,7 +696,6 @@ create table case_agg as
 select coalesce(a.Year,b.Year) as Year,
 	coalesce(a.County_substr,b.County_substr) as County_substr,
 	coalesce(a.Disease,b.Disease) as Disease, 
-	coalesce(a.Reporting_Date_Type,b.Reporting_Date_Type) as Reporting_Date_Type,
 	coalesce(a.Disease_Group,b.Disease_Group) as Disease_Group,
 	a.*, b.*
 from agg_annual a full join agg_quarter b
@@ -911,54 +706,45 @@ order by Year desc, County_substr, Disease;
 
 /*Add rows for when no cases were reported for the county/year/disease*/
 
-proc sort data=county_pops out=unique_counties (keep=COUNTY) nodupkey ;
-by COUNTY;
-run;
-
-proc sort data=agg_annual out=unique_diseases (keep=Disease /*Reporting_Date_Type */Disease_Group) nodupkey ;
-by Disease;
-run;
-data unique_diseases;
-set unique_diseases;
-Disease=Disease;
-if cmiss(of _all_) then delete;
-run;
-
-data unique_years;
-do Year=2015 to 2024; output; end;
-run;
-
-data unique_quarters;
-do Quarter=1 to 4; output; end;
-run;
-
-proc sql;
-create table unique_table_b as
-select unique_counties.*, unique_diseases.Disease, unique_years.* , unique_quarters.*
-from unique_counties cross join unique_diseases cross join unique_years cross join unique_quarters;
+/*proc sort data=agg_annual out=unique_diseases (keep=Disease Reporting_Date_Type Disease_Group) nodupkey ;*/
+/*by Disease;*/
+/*run;*/
+/*data unique_diseases;*/
+/*set unique_diseases;*/
+/*Disease=Disease;*/
+/*if cmiss(of _all_) then delete;*/
+/*run;*/
+/**/
+/*proc sql;*/
+/*create table unique_table_b as*/
+/*select unique_counties.*, unique_diseases.Disease, unique_years.* , unique_quarters.**/
+/*from unique_counties cross join unique_diseases cross join unique_years cross join unique_quarters;*/
 
 
-proc sql;
-create table cases as
-select coalesce(a.Year,b.Year) as Year, coalesce(a.Quarter,b.Quarter) as Quarter, coalesce(a.Disease,b.Disease) as Disease,
-	coalesce(a.County_substr,b.COUNTY) as County_substr, a.*
-from case_agg a full join unique_table_b b
-	on a.year=b.year and a.Quarter=b.Quarter and a.Disease=b.Disease and a.County_substr=b.COUNTY;
+/*proc sql;*/
+/*create table cases as*/
+/*select coalesce(a.Year,b.Year) as Year, coalesce(a.Quarter,b.Quarter) as Quarter, coalesce(a.Disease,b.Disease) as Disease,*/
+/*	coalesce(a.County_substr,b.COUNTY) as County_substr, a.**/
+/*from case_agg a full join unique_table_b b*/
+/*	on a.year=b.year and a.Quarter=b.Quarter and a.Disease=b.Disease and a.County_substr=b.COUNTY;*/
 
 
 /*Join with county population data*/
 proc sql;
 create table case_rates as
 select coalesce(a.Year,b.year) as Year, coalesce(a.County_substr,b.COUNTY) as County_substr, a.*, b.*
-from cases a left join county_pops b
+/*from cases a left join county_pops b*/
+from case_agg a left join county_pops b
 	on a.Year=b.year and a.County_substr=b.COUNTY;
 
-data case_rates (keep=Year Quarter County_substr Disease Reporting_Date_Type Disease_Group Cases_County_Annual
-Cases_County_Quarterly county_pop_adjusted male female
-white black ai_an asian_pi multi_race hispanic nonhispanic);
+data case_rates (keep=Year County_substr Disease Disease_Group Cases_County_Annual county_pop_adjusted
+Quarter Cases_County_Quarterly
+male female white black ai_an asian_pi multi_race hispanic nonhispanic);
 set case_rates;
-if Disease='Influenza, pediatric death' then county_pop_adjusted=age_0_17;
-	else if Disease='Influenza, adult death' then county_pop_adjusted=age_18GE;
+/*if Disease='Influenza, pediatric death' then county_pop_adjusted=age_0_17;*/
+/*	else if Disease='Influenza, adult death' then county_pop_adjusted=age_18GE;*/
+if Disease='Influenza, pediatric death' then county_pop_adjusted=age_0_12+age_13_17;
+	else if Disease='Influenza, adult death' then county_pop_adjusted=age_18_24+age_25_49+age_50_64+age_GE65;
 	else if Disease='HIV' then county_pop_adjusted=county_pop-age_0_12;
 	else county_pop_adjusted=county_pop;
 run;
@@ -990,19 +776,15 @@ proc sql;
 create table temp as
 select *
 from state_pops
-where year=2022;
+where year=2023;
 
-data temp_2023;
-set temp;
-year=2023;
-run;
 data temp_2024;
 set temp;
 year=2024;
 run;
 
 data state_pops;
-set state_pops temp_2023 temp_2024;
+set state_pops temp_2024;
 run;
 
 
@@ -1047,18 +829,19 @@ from case_rates a left join state_pops b
 
 /*Finalize*/
 
-data case_rates_final (keep=Year Quarter Reporting_Date_Type Disease Disease_Group County_substr
-	Cases_County_Annual Cases_County_Quarterly
-	county_pop_adjusted County_Incidence_100k County_Incidence_100k_Quarterly
-	Cases_State_Annual Cases_State_Quarterly
-	state_pop_adjusted State_Incidence_100k State_Incidence_100k_Quarterly);
+data case_rates_final (keep=Year Disease Disease_Group County_substr Cases_County_Annual
+	county_pop_adjusted County_Incidence_100k Cases_State_Annual state_pop_adjusted State_Incidence_100k
+	Quarter Cases_County_Quarterly County_Incidence_100k_Quarterly Cases_State_Quarterly State_Incidence_100k_Quarterly); 
 set case_rates;
 where Year <=2024;
-if (Year=2024 and Quarter=2) or (Year=2024 and Quarter=3) or (Year=2024 and Quarter=4) then delete;
+if (Year=2024 and Quarter=3) or (Year=2024 and Quarter=4) then delete;
+if Year=2024 and Quarter=2 and Disease='HIV' then delete;
 if missing(Cases_State_Annual) then Cases_State_Annual=0;
-	else Cases_State_Annual=Cases_State_Annual;
-if Disease='Influenza, pediatric death' then state_pop_adjusted=age_0_17;
-	else if Disease='Influenza, adult death' then state_pop_adjusted=age_18GE;
+/*	else Cases_State_Annual=Cases_State_Annual;*/
+/*if Disease='Influenza, pediatric death' then state_pop_adjusted=age_0_17;*/
+/*	else if Disease='Influenza, adult death' then state_pop_adjusted=age_18GE;*/
+if Disease='Influenza, pediatric death' then state_pop_adjusted=age_0_12+age_13_17;
+	else if Disease='Influenza, adult death' then state_pop_adjusted=age_18_24+age_25_49+age_50_64+age_GE65;
 	else if Disease='HIV' then state_pop_adjusted=total_pop-age_0_12;
 	else state_pop_adjusted=total_pop;
 if Disease='Botulism - infant' then do;
@@ -1079,21 +862,21 @@ if Disease='Botulism - infant' then do;
 		County_Incidence_100k_Quarterly=.;
 		State_Incidence_100k_Quarterly=.;
 		end;
-	else if Disease='Tetanus' then do;
+	else if Disease='TB' then do;
 		Cases_County_Quarterly=.;
 		Cases_State_Quarterly=.;
-		County_Incidence_100k=County_Incidence_100k;
+		County_Incidence_100k=round(County_Incidence_100k, .1);
 		County_Incidence_100k_Quarterly=.;
-		State_Incidence_100k=Cases_State_Annual/state_pop_adjusted*100000;
+		State_Incidence_100k=round(Cases_State_Annual/state_pop_adjusted*100000, .1);
 		State_Incidence_100k_Quarterly=.;
 		end;
 	else do;
-		County_Incidence_100k=County_Incidence_100k;
-		County_Incidence_100k_Quarterly=County_Incidence_100k_Quarterly;
-		State_Incidence_100k=Cases_State_Annual/state_pop_adjusted*100000;
-		State_Incidence_100k_Quarterly=Cases_State_Quarterly/state_pop_adjusted*100000;
+		County_Incidence_100k=round(County_Incidence_100k, .1);
+		County_Incidence_100k_Quarterly=round(County_Incidence_100k_Quarterly, .1);
+		State_Incidence_100k=round(Cases_State_Annual/state_pop_adjusted*100000, .1);
+		State_Incidence_100k_Quarterly=round(Cases_State_Quarterly/state_pop_adjusted*100000, .1);
 		end;
-format State_Incidence_100k 8.1;
+format County_Incidence_100k State_Incidence_100k County_Incidence_100k_Quarterly State_Incidence_100k_Quarterly 8.1;
 run;
 
 proc sort data=case_rates_final;
@@ -1102,62 +885,74 @@ run;
 
 /*Un-comment section below to export file for importing to Tableau:*/
 
-/*proc export data=case_rates_final*/
-/*    outfile="T:\Tableau\NCD3 2.0\NCD3 2.0 Output\Tableau Data Sources\06-01-24_data_aggregated_quarterly.xlsx"*/
-/*    dbms=xlsx*/
-/*    replace;*/
-/*    sheet="Aggregated Cases by County Quarterly";*/
-/*run;*/
+proc export data=case_rates_final
+    outfile="T:\Tableau\NCD3 2.0\NCD3 2.0 Output\Tableau Data Sources\08-06-24_data_aggregated_quarterly_rounded.xlsx"
+    dbms=xlsx
+    replace;
+    sheet="Aggregated Cases by County";
+run;
 
 
 
 											/*Demographics Section*/
 
-/*proc export data=cases*/
-/*    outfile="T:\Tableau\NCD3 2.0\NCD3 2.0 Output\Tableau Data Sources\12-01-23_data_aggregated_demographic_cases_12-07-23.xlsx"*/
-/*    dbms=xlsx*/
-/*    replace;*/
-/*    sheet="Aggregated Demographic Cases";*/
-/*run;*/
 
-/*proc sql;*/
-/*create table case_agg_demographics as*/
-/*select*/
-/*	Year, */
-/*	OWNING_JD label='County' format=$30. length=30, */
-/*	Disease label='Disease',*/
-/*	put(age, agegrp.) as AgeGroup,*/
-/*	GENDER, HISPANIC,*/
-/*	case when (RACE2 ne '' or RACE3 ne '' or RACE4 ne '' or RACE5 ne '' or RACE6 ne '') then "Multi-Race"*/
-/*		else RACE1*/
-/*		end as Race,*/
-/*	count(distinct CASE_ID) as Demographic_Subtotal*/
-/*from final*/
-/*group by Year, OWNING_JD, Disease, AgeGroup, GENDER, HISPANIC, Race*/
-/*order by Year desc, OWNING_JD, Disease, AgeGroup, GENDER, HISPANIC, Race;*/
+/*Match race choices with population data variables*/
+proc sql;
+create table demoInput(drop=RACE1 RACE2 RACE3 RACE4 RACE5 RACE6) as
+select *,
+	case
+			when (RACE2 ne '' or RACE3 ne '' or RACE4 ne '' or RACE5 ne '' or RACE6 ne '') then "Multi-Race"
+			when RACE1='Asian' then 'Asian or Native Hawaiian or Pacific Islander'
+			when RACE1='Native Hawaiian or Pacific Islander' then 'Asian or Native Hawaiian or Pacific Islander'
+			else RACE1
+		end as Race
+from final
+	where Year <=2023;
 
-/*proc sql;*/
-/*create table case_agg_annual as*/
-/*select agg_agegroup.*, b.**/
-/*from case_agg_annual a full join case_agg_demographics b*/
-/*	on a.Year=b.Year and a.OWNING_JD=b.OWNING_JD and a.Disease=b.Disease*/
-/*order by Year desc, OWNING_JD, Disease, AgeGroup, GENDER, HISPANIC, Race;*/
+/*Combine responses that are Missing/Unknown*/
+data demoInput;
+format HISPANIC $15.;
+set demoInput;
+if Race='' then Race='Missing/Unknown';
+else if Race='Unknown' then Race='Missing/Unknown';
+
+if find(Hispanic,"Yes")>0 then HISPANIC='Hispanic';
+else if find(Hispanic,"No")>0 then HISPANIC='Non-Hispanic';
+else if HISPANIC='' then HISPANIC='Missing/Unknown';
+else if find(Hispanic, "Unknown")>0 then HISPANIC='Missing/Unknown';
+run;
+
+
+/*Create Age Bins*/
+proc format;
+value agegrp
+/*	0-<5='0-5'*/
+/*	5-<12='5-12'*/
+	0-<13='0-12'
+	13-<18='13-17'
+	18-<25='18-24'
+	25-<50='25-49'
+	50-<65='50-64'
+	65-high='65+'
+	.='Missing/Unknown';
+run;
 
 
 /*Add year to demographic population tables; Apply suppression*/
 
-proc sql;
-create table temp as
-select *
-from demo_county_pops
-where year=2022;
-data temp;
-set temp;
-year=2023;
-run;
+/*proc sql;*/
+/*create table temp as*/
+/*select **/
+/*from demo_county_pops*/
+/*where year=2022;*/
+/*data temp;*/
+/*set temp;*/
+/*year=2023;*/
+/*run;*/
 
 data demo_county_pops;
-set demo_county_pops temp;
+set county_pops /*temp*/;
 COUNTY = propcase(COUNTY);
 run;
 proc iml;
@@ -1176,18 +971,18 @@ array tosuppress _numeric_;
 run;
 
 
-proc sql;
-create table temp as
-select *
-from demo_state_pops
-where year=2022;
-data temp;
-set temp;
-year=2023;
-run;
+/*proc sql;*/
+/*create table temp as*/
+/*select **/
+/*from demo_state_pops*/
+/*where year=2022;*/
+/*data temp;*/
+/*set temp;*/
+/*year=2023;*/
+/*run;*/
 
 data demo_state_pops;
-set demo_state_pops temp;
+set state_pops /*temp*/;
 run;
 
 data demo_state_pops_sup;
@@ -1216,98 +1011,187 @@ array tosuppress _numeric_;
 run;
 
 
-/*Match race choices with population data variables*/
+%macro suppress_cases(group);
+
+data &group;
+set &group;
+format County_Annual_Incidence 10.1;
+County_Annual_Incidence=County_Annual_Cases/Population_County*100000;
+County_Annual_Cases_Sup=0;
+/*State_Annual_Cases_Sup=0;*/
+/*format Suppression $3.;*/
+/*Suppression='No';*/
+County_Annual_Cases_char=put(County_Annual_Cases, 10.);
+if Demographic NE 'Missing/Unknown' and State_Annual_Incidence=. then do;
+	County_Annual_Cases_Sup=County_Annual_Cases;
+	County_Annual_Cases=0;
+	County_Annual_Cases_char='Suppressed';
+/*	State_Annual_Cases_Sup=State_Annual_Cases; State_Annual_Cases='Suppressed';*/
+/*	Suppression='Yes';*/	end;
+if Demographic NE 'Missing/Unknown' and County_Annual_Incidence=. then do;
+	County_Annual_Cases_Sup=County_Annual_Cases;
+	County_Annual_Cases=0;
+	County_Annual_Cases_char='Suppressed';
+/*	Suppression='Yes';*/	end;
+
+%mend;
+
+%macro suppress_cases_mult(group);
+
+data &group;
+set &group;
+format County_Annual_Incidence 10.1;
+County_Annual_Incidence=County_Annual_Cases/Population_County*100000;
+County_Annual_Cases_Sup=0;
+/*State_Annual_Cases_Sup=0;*/
+/*format Suppression $3.;*/
+/*Suppression='No';*/
+County_Annual_Cases_char=put(County_Annual_Cases, 10.);
+if Demographic NE 'Missing/Unknown' and Demographic2 NE 'Missing/Unknown' and State_Annual_Incidence=. then do;
+	County_Annual_Cases_Sup=County_Annual_Cases;
+	County_Annual_Cases=0;
+	County_Annual_Cases_char='Suppressed';
+/*	State_Annual_Cases_Sup=State_Annual_Cases; State_Annual_Cases='Suppressed';*/
+	/*Suppression='Yes';*/	end;
+if Demographic NE 'Missing/Unknown' Demographic2 NE 'Missing/Unknown' and County_Annual_Incidence=. then do;
+	County_Annual_Cases_Sup=County_Annual_Cases;
+	County_Annual_Cases=0;
+	County_Annual_Cases_char='Suppressed';
+	/*Suppression='Yes';*/	end;
+run;
+
+%mend;
+
+
+%macro secondary_suppress(group);
+
+proc sort data=&group;
+  by Year County_substr Disease Population_County descending County_Annual_Cases_Sup;
+run;
+
+data SecondLowestTable(keep=Year County_substr Disease SecondLowest);
+set &group;
+SecondLowest=Demographic;
+by Year County_substr Disease;
+if first.Disease then Marker=0;
+  Marker+1;
+if Marker = 2;
+run;
+
 proc sql;
-create table demoInput(drop=RACE1 RACE2 RACE3 RACE4 RACE5 RACE6) as
-select *,
-	case
-			when (RACE2 ne '' or RACE3 ne '' or RACE4 ne '' or RACE5 ne '' or RACE6 ne '') then "Multi-Race"
-			when RACE1='Asian' then 'Asian or Native Hawaiian or Pacific Islander'
-			when RACE1='Native Hawaiian or Pacific Islander' then 'Asian or Native Hawaiian or Pacific Islander'
-			else RACE1
-		end as Race
-from final
-	where Year <=2023;
+create table &group as
+select a.*, b.*
+from &group a left join SecondLowestTable b
+		on a.Year=b.Year and a.County_substr=b.County_substr and a.Disease=b.Disease;
 
-/*Combine responses that are Missing/Unknown*/
-data demoInput;
-format HISPANIC $15.;
-set demoInput;
-if Race='' then Race='Missing/Unknown';
-else if Race='Unknown' then Race='Missing/Unknown';
+proc sql;
+create table suppression as
+select Year, County_substr, Disease, Disease_Group, Demographic_Group,
+	'Suppressed' as Demographic, 'Yes' as Suppression,
+	sum(County_Annual_Cases_Sup) as County_Annual_Cases
+from &group
+group by Year, County_substr, Disease, Disease_Group, Demographic_Group
+having County_Annual_Cases>0
+order by Year desc, County_substr, Disease;
 
-if find (Hispanic,"Yes")>0 then HISPANIC='Hispanic';
-else if find (Hispanic,"No")>0 then HISPANIC='Non-Hispanic';
-else if HISPANIC='' then HISPANIC='Missing/Unknown';
-else if find (Hispanic, "Unknown")>0 then HISPANIC='Missing/Unknown';
+data &group;
+set &group suppression(drop=Suppression);
 run;
 
+proc sql;
+create table &group as
+select a.*, b.*
+from &group a left join suppression(keep=Year County_substr Disease Suppression) b
+		on a.Year=b.Year and a.County_substr=b.County_substr and a.Disease=b.Disease;
 
-/*Create Age Bins*/
-proc format;
-value agegrp
-/*	0-<5='0-5'*/
-/*	5-<12='5-12'*/
-	0-<13='0-12'
-	13-<18='13-17'
-	18-<25='18-24'
-	25-<50='25-49'
-	50-<65='50-64'
-	65-high='65+';
+data &group;
+set &group;
+if Suppression='' then Suppression='No';
 run;
+
+data &group;
+set &group;
+County_Annual_Cases_char=put(County_Annual_Cases, 10.);
+if Suppression='Yes' and Demographic ne 'Suppressed' then County_Annual_Cases_char='Suppressed';
+if Suppression='Yes' and Demographic=SecondLowest then do;
+	County_Annual_Cases=0;
+	County_Annual_Cases_char='Suppressed'; end;
+drop SecondLowest;
+run;
+
+%mend;
+
+
+%macro secondary_suppress_mult(group);
+
+proc sort data=&group;
+  by Year County_substr Disease Population_County descending County_Annual_Cases_Sup;
+run;
+
+data SecondLowestTable(keep=Year County_substr Disease SecondLowest SecondLowest2);
+set &group;
+SecondLowest=Demographic;
+SecondLowest2=Demographic2;
+by Year County_substr Disease;
+if first.Disease then Marker=0;
+  Marker+1;
+if Marker = 2;
+drop Marker;
+run;
+
+proc sql;
+create table &group as
+select a.*, b.*
+from &group a left join SecondLowestTable b
+		on a.Year=b.Year and a.County_substr=b.County_substr and a.Disease=b.Disease;
+
+proc sql;
+create table suppression as
+select Year, County_substr, Disease, Disease_Group, Demographic_Group,
+	'Suppressed' as Demographic, 'Suppressed' as Demographic2,  'Yes' as Suppression,
+	sum(County_Annual_Cases_Sup) as County_Annual_Cases
+from &group
+group by Year, County_substr, Disease, Disease_Group, Demographic_Group
+having County_Annual_Cases>0
+order by Year desc, County_substr, Disease;
+
+data &group;
+set &group suppression(drop=Suppression);
+run;
+
+proc sql;
+create table &group as
+select a.*, b.*
+from &group a left join suppression(keep=Year County_substr Disease Suppression) b
+		on a.Year=b.Year and a.County_substr=b.County_substr and a.Disease=b.Disease;
+
+data &group;
+set &group;
+if Suppression='' then Suppression='No';
+run;
+
+data &group;
+set &group;
+County_Annual_Cases_char=put(County_Annual_Cases, 10.);
+if Suppression='Yes' and Demographic ne 'Suppressed' and Demographic2 ne 'Suppressed'
+	then County_Annual_Cases_char='Suppressed';
+if Suppression='Yes' and Demographic=SecondLowest and Demographic2=SecondLowest2 then do;
+	County_Annual_Cases=0;
+	County_Annual_Cases_char='Suppressed'; end;
+drop SecondLowest SecondLowest2;
+run;
+
+%mend;
+
+
+/*If no data, ''; N and IR not shown.
+  If response is present in NC EDSS but not represented in the population file, ''; N shown, IR not shown.
+  If data are present in both files but suppressed due to population denominator, '0'; N and IR are shown as '0';
+	next-lowest subcategory is also shown as '0'.*/
+
 
 
 /*Generate Age Summary*/
-
-/*proc sql;*/
-/*create table cases_age as*/
-/*select Disease, disease_group, OWNING_JD, mmwr_year, AgeGroup, SYMPTOM_YEAR, DOB, LHD_DX_YR, DEDUP_YEAR, count(Disease) as Count*/
-/*from demoInput*/
-/*group by Disease, disease_group, OWNING_JD, mmwr_year, AgeGroup*/
-/*order by Disease, disease_group, OWNING_JD, mmwr_year, AgeGroup;*/
-/*quit;*/
-
-/* Export age summary table*/
-/*proc export data=cases_age*/
-/*    outfile="T:\Tableau\NCD3 2.0\NCD3 2.0 Output\SAS Output\age_summary_ncd3_040123.xlsx"*/
-/*    dbms=xlsx*/
-/*    replace;*/
-/*    sheet="Cases Age Summary";*/
-/*run;*/
-/*quit;*/
-
-
-/*Join in Population Data; assign age categories ((if needed - not required for YTD reporting; used in NCD3 2.0))*/
-
-/*proc sql;*/
-/*create table agegroups as*/
-/*select a.*, upcase(tranwrd(a.OWNING_JD, 'County', '')) as joinwrd,*/
-/*	b.age_0_04_pop2020, b.age_05_11_pop2020, b.age_12_17_pop2020, b.age_18_24_pop2020, b.age_25_49_pop2020, b.age_50_64_pop2020, b.age_GE65_pop2020*/
-/*from cases_age a*/
-/*left join county_pops b*/
-/*on upcase(tranwrd(a.OWNING_JD,'County',''))=b.upper_cnty;*/
-
-/*Calculate Age-Specific Rates*/
-
-/*create table agegroups2 as*/
-/*select */
-/*	Disease,*/
-/*	OWNING_JD,*/
-/*	MMWR_YEAR,*/
-/*	AgeGroup,*/
-/*	Count,*/
-/*	case */
-/*		when AgeGroup='0-5' then Count/age_0_04_pop2020 */
-/*		when AgeGroup='5-12' then Count/age_05_11_pop2020 */
-/*		when AgeGroup='12-18' then Count/age_12_17_pop2020 */
-/*		when AgeGroup='18-25' then Count/age_18_24_pop2020 */
-/*		when AgeGroup='25-50' then Count/age_25_49_pop2020 */
-/*		when AgeGroup='50-64' then Count/age_50_64_pop2020 */
-/*		when AgeGroup='65+' then Count/age_GE65_pop2020  else . end as agerate*/
-/*from agegroups*/
-/*order by Disease, OWNING_JD, mmwr_year, AgeGroup;*/
-/*quit;*/
-
 
 data agg_agegroup;
 set demoInput;
@@ -1315,10 +1199,10 @@ set demoInput;
 run;
 proc sql;
 create table agg_agegroup as
-select Year, County_substr, Disease, Reporting_Date_Type, Disease_Group,
+select Year, County_substr, Disease, Disease_Group,
 	Demographic, count(distinct CASE_ID) as County_Annual_Cases
 from agg_agegroup
-group by Year, County_substr, Disease, Reporting_Date_Type, Disease_Group, Demographic
+group by Year, County_substr, Disease, Disease_Group, Demographic
 order by Year desc, County_substr, Disease, Demographic;
 
 proc sql;
@@ -1349,18 +1233,19 @@ create table rates_agegroup as
 select
 	Year, County_substr, Disease, Disease_Group, Demographic, County_Annual_Cases, State_Annual_Cases,
 	case
-			when Demographic='0-12' then State_Annual_Cases/age_0_12*100000
-			when Demographic='13-17' then State_Annual_Cases/age_13_17*100000
-			when Demographic='18-24' then State_Annual_Cases/age_18_24*100000
-			when Demographic='25-49' then State_Annual_Cases/age_25_49*100000
-			when Demographic='50-64' then State_Annual_Cases/age_50_64*100000
-			when Demographic='65+' then State_Annual_Cases/age_GE65*100000
-		end as State_Annual_Incidence
+			when Demographic='0-12' then age_0_12
+			when Demographic='13-17' then age_13_17
+			when Demographic='18-24' then age_18_24
+			when Demographic='25-49' then age_25_49
+			when Demographic='50-64' then age_50_64
+			when Demographic='65+' then age_GE65
+		end as Population_State
 from rates_agegroup;
 
 proc sql;
 create table rates_agegroup as
-select a.*, b.*
+select a.*, b.*,
+State_Annual_Cases/Population_State*100000 as State_Annual_Incidence format=10.1
 from rates_agegroup a left join demo_county_pops_sup b
 	on a.Year=b.year and a.County_substr=b.COUNTY;
 
@@ -1368,23 +1253,45 @@ proc sql;
 create table rates_agegroup as
 select
 	Year, County_substr, Disease, Disease_Group, Demographic,
-	State_Annual_Cases, State_Annual_Incidence, County_Annual_Cases,
-	case when Demographic='0-12' then County_Annual_Cases/age_0_12*100000
-		when Demographic='13-17' then County_Annual_Cases/age_13_17*100000
-		when Demographic='18-24' then County_Annual_Cases/age_18_24*100000
-		when Demographic='25-49' then County_Annual_Cases/age_25_49*100000
-		when Demographic='50-64' then County_Annual_Cases/age_50_64*100000
-		when Demographic='65+' then County_Annual_Cases/age_GE65*100000
-		end as County_Annual_Incidence
+	State_Annual_Cases, State_Annual_Incidence, County_Annual_Cases, Population_State,
+	case when Demographic='0-12' then age_0_12
+		when Demographic='13-17' then age_13_17
+		when Demographic='18-24' then age_18_24
+		when Demographic='25-49' then age_25_49
+		when Demographic='50-64' then age_50_64
+		when Demographic='65+' then age_GE65
+		end as Population_County,
+	'Age Group' as Demographic_Group
 from rates_agegroup
 order by Year desc, County_substr, Disease, Demographic;
 
+/*data rates_agegroup;*/
+/*set rates_agegroup;*/
+/*format County_Annual_Incidence 10.1;*/
+/*County_Annual_Incidence=County_Annual_Cases/Population_County*100000;*/
+/*County_Annual_Cases_Sup=0;*/
+/*State_Annual_Cases_Sup=0;*/
+/*format Suppression $3.;*/
+/*Suppression='No';*/
+/*if Demographic NE 'Missing/Unknown' and State_Annual_Incidence=. then do;*/
+/*	County_Annual_Cases_Sup=County_Annual_Cases;*/
+/*	County_Annual_Cases=0;*/
+/*	State_Annual_Cases_Sup=State_Annual_Cases;*/
+/*	State_Annual_Cases=0; State_Annual_Incidence=0;*/
+/*	Suppression='Yes';	end;*/
+/*if Demographic NE 'Missing/Unknown' and County_Annual_Incidence=. then do;*/
+/*	County_Annual_Cases_Sup=County_Annual_Cases;*/
+/*	County_Annual_Cases=0;*/
+/*	Suppression='Yes';	end;*/
+/*Demographic_Group='Age Group';*/
+/*run;*/
+
+%suppress_cases(rates_agegroup);
+%secondary_suppress(rates_agegroup);
+
 data rates_agegroup;
 set rates_agegroup;
-if left(Demographic) NE '.' and State_Annual_Incidence=. then do;
-	County_Annual_Cases=.; State_Annual_Cases=.; end;
-if left(Demographic) NE '.' and County_Annual_Incidence=. then County_Annual_Cases=.;
-DemographicGroup='Age Group';
+Demographic_Group='Age Group';
 run;
 
 
@@ -1393,10 +1300,10 @@ run;
 proc sql;
 create table agg_GENDER as
 select
-	Year, County_substr, Disease, Reporting_Date_Type, Disease_Group,
+	Year, County_substr, Disease, Disease_Group,
 	GENDER as Demographic length=45, count(distinct CASE_ID) as County_Annual_Cases
 from demoInput
-group by Year, County_substr, Disease, Reporting_Date_Type, Disease_Group, Demographic
+group by Year, County_substr, Disease, Disease_Group, Demographic
 order by Year desc, County_substr, Disease, Demographic;
 
 proc sql;
@@ -1427,18 +1334,19 @@ create table rates_GENDER as
 select
 	Year, County_substr, Disease, Disease_Group, Demographic, County_Annual_Cases, State_Annual_Cases,
 	case
-			when Demographic='Female' and Disease='Influenza, adult death' then State_Annual_Cases/female_age_18GE*100000
-			when Demographic='Female' and Disease='Influenza, pediatric death' then State_Annual_Cases/female_age_0_17*100000
-			when Demographic='Male' and Disease='Influenza, adult death' then State_Annual_Cases/male_age_18GE*100000
-			when Demographic='Male' and Disease='Influenza, pediatric death' then State_Annual_Cases/male_age_0_17*100000
-			when Demographic='Female' then State_Annual_Cases/female*100000
-			when Demographic='Male' then State_Annual_Cases/male*100000
-		end as State_Annual_Incidence
+			when Demographic='Female' and Disease='Influenza, adult death' then female_age_18GE
+			when Demographic='Female' and Disease='Influenza, pediatric death' then female_age_0_17
+			when Demographic='Male' and Disease='Influenza, adult death' then male_age_18GE
+			when Demographic='Male' and Disease='Influenza, pediatric death' then male_age_0_17
+			when Demographic='Female' then female
+			when Demographic='Male' then male
+		end as Population_State
 from rates_GENDER;
 
 proc sql;
 create table rates_GENDER as
-select a.*, b.*
+select a.*, b.*,
+State_Annual_Cases/Population_State*100000 as State_Annual_Incidence format=10.1
 from rates_GENDER a left join demo_county_pops_sup b
 	on a.Year=b.year and a.County_substr=b.COUNTY;
 
@@ -1446,26 +1354,66 @@ proc sql;
 create table rates_GENDER as
 select
 	Year, County_substr, Disease, Disease_Group, Demographic,
-	State_Annual_Cases, State_Annual_Incidence, County_Annual_Cases,
+	State_Annual_Cases, State_Annual_Incidence, County_Annual_Cases, Population_State,
 	case
-			when Demographic='Female' and Disease='Influenza, adult death' then County_Annual_Cases/female_age_18GE*100000
-			when Demographic='Female' and Disease='Influenza, pediatric death' then County_Annual_Cases/female_age_0_17*100000
-			when Demographic='Male' and Disease='Influenza, adult death' then County_Annual_Cases/male_age_18GE*100000
-			when Demographic='Male' and Disease='Influenza, pediatric death' then County_Annual_Cases/male_age_0_17*100000
-			when Demographic='Female' then County_Annual_Cases/female*100000
-			when Demographic='Male' then County_Annual_Cases/male*100000
-		end as County_Annual_Incidence
+			when Demographic='Female' and Disease='Influenza, adult death' then female_age_18GE
+			when Demographic='Female' and Disease='Influenza, pediatric death' then female_age_0_17
+			when Demographic='Male' and Disease='Influenza, adult death' then male_age_18GE
+			when Demographic='Male' and Disease='Influenza, pediatric death' then male_age_0_17
+			when Demographic='Female' then female
+			when Demographic='Male' then male
+		end as Population_County,
+	'Gender' as Demographic_Group
 from rates_GENDER
 order by Year desc, County_substr, Disease, Demographic;
 
+/*data rates_GENDER;*/
+/*set rates_GENDER;*/
+/*format County_Annual_Incidence 10.1;*/
+/*County_Annual_Incidence=County_Annual_Cases/Population_County*100000;*/
+/*County_Annual_Cases_Sup=0;*/
+/*State_Annual_Cases_Sup=0;*/
+/*if Demographic NE '' and State_Annual_Incidence=. then do;*/
+/*	County_Annual_Cases_Sup=County_Annual_Cases;*/
+/*	County_Annual_Cases=0;*/
+/*	State_Annual_Cases_Sup=State_Annual_Cases;*/
+/*	State_Annual_Cases=0;	end;*/
+/*if Demographic NE '' and County_Annual_Incidence=. then do;*/
+/*	County_Annual_Cases_Sup=County_Annual_Cases;*/
+/*	County_Annual_Cases=0;	end;*/
+/*Demographic_Group='Gender';*/
+/*run;*/
+
 data rates_GENDER;
 set rates_GENDER;
-if Demographic NE ' ' and State_Annual_Incidence=. then do;
-	State_Annual_Cases=.; County_Annual_Cases=.; end;
-if Demographic NE ' ' and County_Annual_Incidence=. then County_Annual_Cases=.;
-DemographicGroup='Gender';
+format County_Annual_Incidence 10.1;
+County_Annual_Incidence=County_Annual_Cases/Population_County*100000;
+County_Annual_Cases_Sup=0;
+State_Annual_Cases_Sup=0;
+/*format Suppression $3.;*/
+/*Suppression='No';*/
+if Demographic NE '' and State_Annual_Incidence=. then do;
+	County_Annual_Cases_Sup=County_Annual_Cases;
+	County_Annual_Cases=0;
+	State_Annual_Cases_Sup=State_Annual_Cases;
+	State_Annual_Cases=0; 
+/*	Suppression='Yes';*/
+	end;
+if Demographic NE '' and County_Annual_Incidence=. then do;
+	County_Annual_Cases_Sup=County_Annual_Cases;
+	County_Annual_Cases=0;
+/*	Suppression='Yes';*/
+	end;
 run;
 
+
+/*%suppress_cases(rates_GENDER);*/
+%secondary_suppress(rates_GENDER);
+
+data rates_GENDER;
+set rates_GENDER;
+Demographic_Group='Gender';
+run;
 
 
 /*Generate Ethnicity-Hispanic Summary*/
@@ -1473,11 +1421,11 @@ run;
 proc sql;
 create table agg_HISPANIC as
 select
-	Year, County_substr, Disease, Reporting_Date_Type, Disease_Group,
+	Year, County_substr, Disease, Disease_Group,
 /*	'Hispanic_'||HISPANIC as HISPANIC length=17,*/ HISPANIC as Demographic length=45,
 	count(distinct CASE_ID) as County_Annual_Cases
 from demoInput
-group by Year, County_substr, Disease, Reporting_Date_Type, Disease_Group, Demographic
+group by Year, County_substr, Disease, Disease_Group, Demographic
 order by Year desc, County_substr, Disease, Demographic;
 /*data agg_HISPANIC;*/
 /*set agg_HISPANIC;*/
@@ -1500,6 +1448,7 @@ from agg_HISPANIC a left join agg_HISPANIC_state b
 	on a.Year=b.year and a.Disease=b.Disease and a.Demographic=b.Demographic
 order by Year desc, County_substr, Disease, Demographic;
 
+
 proc sql;
 create table rates_HISPANIC as
 select a.*, b.*, b.hispanic as hispanicyes
@@ -1511,18 +1460,19 @@ create table rates_HISPANIC as
 select
 	Year, County_substr, Disease, Disease_Group, Demographic, County_Annual_Cases, State_Annual_Cases,
 	case
-			when Demographic='Hispanic' and Disease='Influenza, adult death' then State_Annual_Cases/hispanic_age_18GE*100000
-			when Demographic='Hispanic' and Disease='Influenza, pediatric death' then State_Annual_Cases/hispanic_age_0_17*100000
-			when Demographic='Non-Hispanic' and Disease='Influenza, adult death' then State_Annual_Cases/nonhispanic_age_18GE*100000
-			when Demographic='Non-Hispanic' and Disease='Influenza, pediatric death' then State_Annual_Cases/nonhispanic_age_0_17*100000
-			when Demographic='Hispanic' then State_Annual_Cases/hispanicyes*100000
-			when Demographic='Non-Hispanic' then State_Annual_Cases/nonhispanic*100000
-		end as State_Annual_Incidence
+			when Demographic='Hispanic' and Disease='Influenza, adult death' then hispanic_age_18GE
+			when Demographic='Hispanic' and Disease='Influenza, pediatric death' then hispanic_age_0_17
+			when Demographic='Non-Hispanic' and Disease='Influenza, adult death' then nonhispanic_age_18GE
+			when Demographic='Non-Hispanic' and Disease='Influenza, pediatric death' then nonhispanic_age_0_17
+			when Demographic='Hispanic' then hispanicyes
+			when Demographic='Non-Hispanic' then nonhispanic
+		end as Population_State
 from rates_HISPANIC;
 
 proc sql;
 create table rates_HISPANIC as
-select a.*, b.*, b.hispanic as hispanicyes
+select a.*, b.*, b.hispanic as hispanicyes,
+State_Annual_Cases/Population_State*100000 as State_Annual_Incidence format=10.1
 from rates_HISPANIC a left join demo_county_pops_sup b
 	on a.Year=b.year and a.County_substr=b.COUNTY;
 
@@ -1530,25 +1480,47 @@ proc sql;
 create table rates_HISPANIC as
 select
 	Year, County_substr, Disease, Disease_Group, Demographic,
-	State_Annual_Cases, State_Annual_Incidence, County_Annual_Cases,
+	State_Annual_Cases, State_Annual_Incidence, County_Annual_Cases, Population_State,
 	case
-			when Demographic='Hispanic' and Disease='Influenza, adult death' then County_Annual_Cases/hispanic_age_18GE*100000
-			when Demographic='Hispanic' and Disease='Influenza, pediatric death' then County_Annual_Cases/hispanic_age_0_17*100000
-			when Demographic='Non-Hispanic' and Disease='Influenza, adult death' then County_Annual_Cases/nonhispanic_age_18GE*100000
-			when Demographic='Non-Hispanic' and Disease='Influenza, pediatric death' then County_Annual_Cases/nonhispanic_age_0_17*100000
-			when Demographic='Hispanic' then County_Annual_Cases/hispanicyes*100000
-			when Demographic='Non-Hispanic' then County_Annual_Cases/nonhispanic*100000
-		end as County_Annual_Incidence
+			when Demographic='Hispanic' and Disease='Influenza, adult death' then hispanic_age_18GE
+			when Demographic='Hispanic' and Disease='Influenza, pediatric death' then hispanic_age_0_17
+			when Demographic='Non-Hispanic' and Disease='Influenza, adult death' then nonhispanic_age_18GE
+			when Demographic='Non-Hispanic' and Disease='Influenza, pediatric death' then nonhispanic_age_0_17
+			when Demographic='Hispanic' then hispanicyes
+			when Demographic='Non-Hispanic' then nonhispanic
+		end as Population_County,
+	'Ethnicity' as Demographic_Group
 from rates_HISPANIC
 order by Year desc, County_substr, Disease, Demographic;
 
+/*data rates_HISPANIC;*/
+/*set rates_HISPANIC;*/
+/*format County_Annual_Incidence 10.1;*/
+/*County_Annual_Incidence=County_Annual_Cases/Population_County*100000;*/
+/*County_Annual_Cases_Sup=0;*/
+/*State_Annual_Cases_Sup=0;*/
+/*format Suppression $3.;*/
+/*Suppression='No';*/
+/*if Demographic NE 'Missing/Unknown' and State_Annual_Incidence=. then do;*/
+/*	County_Annual_Cases_Sup=County_Annual_Cases;*/
+/*	County_Annual_Cases=0;*/
+/*	State_Annual_Cases_Sup=State_Annual_Cases;*/
+/*	State_Annual_Cases=0; 	end;*/
+/*if Demographic NE 'Missing/Unknown' and County_Annual_Incidence=. then do;*/
+/*	County_Annual_Cases_Sup=County_Annual_Cases;*/
+/*	County_Annual_Cases=0;*/
+/*	Suppression='Yes';	end;*/
+/*Demographic_Group='Ethnicity';*/
+/*run;*/
+
+%suppress_cases(rates_HISPANIC);
+%secondary_suppress (rates_HISPANIC);
+
 data rates_HISPANIC;
 set rates_HISPANIC;
-if Demographic NE 'Missing/Unknown' and State_Annual_Incidence=. then do;
-	State_Annual_Cases=.; County_Annual_Cases=.; end;
-if Demographic NE 'Missing/Unknown' and County_Annual_Incidence=. then County_Annual_Cases=.;
-DemographicGroup='Ethnicity';
+Demographic_Group='Ethnicity';
 run;
+
 
 
 /*Generate Race Summary*/
@@ -1556,16 +1528,11 @@ run;
 proc sql;
 create table agg_race as
 select
-	Year, County_substr, Disease, Reporting_Date_Type, Disease_Group, Race as Demographic length=45,
+	Year, County_substr, Disease, Disease_Group, Race as Demographic length=45,
 	count(distinct CASE_ID) as County_Annual_Cases
 from demoInput
-group by Year, County_substr, Disease, Reporting_Date_Type, Disease_Group, Demographic
+group by Year, County_substr, Disease, Disease_Group, Demographic
 order by Year, County_substr, Disease, Demographic;
-/*data agg_race;*/
-/*set agg_race;*/
-/*if Demographic='Other' then Demographic='Race_Other';*/
-/*else if Demographic='Unknown' then Demographic='Race_Unknown';*/
-/*run;*/
 
 proc sql;
 create table agg_Race_state as
@@ -1583,6 +1550,7 @@ from agg_Race a left join agg_Race_state b
 	on a.Year=b.year and a.Disease=b.Disease and a.Demographic=b.Demographic
 order by Year desc, County_substr, Disease, Demographic;
 
+
 proc sql;
 create table rates_Race as
 select a.*, b.*
@@ -1594,27 +1562,28 @@ create table rates_Race as
 select
 	Year, County_substr, Disease, Disease_Group, Demographic, County_Annual_Cases, State_Annual_Cases,
 	case
-		when Demographic='American Indian Alaskan Native' and Disease='Influenza, adult death' then State_Annual_Cases/ai_an_age_18GE*100000
-		when Demographic='Asian or Native Hawaiian or Pacific Islander' and Disease='Influenza, adult death' then State_Annual_Cases/asian_pi_age_18GE*100000
-		when Demographic='Black or African American' and Disease='Influenza, adult death' then State_Annual_Cases/black_age_18GE*100000
-		when Demographic='Multi-Race' and Disease='Influenza, adult death' then State_Annual_Cases/multi_race_age_18GE*100000
-		when Demographic='White' and Disease='Influenza, adult death' then State_Annual_Cases/white_age_18GE*100000
-		when Demographic='American Indian Alaskan Native' and Disease='Influenza, pediatric death' then State_Annual_Cases/ai_an_age_0_17*100000
-		when Demographic='Asian or Native Hawaiian or Pacific Islander' and Disease='Influenza, pediatric death' then State_Annual_Cases/asian_pi_age_0_17*100000
-		when Demographic='Black or African American' and Disease='Influenza, pediatric death' then State_Annual_Cases/black_age_0_17*100000
-		when Demographic='Multi-Race' and Disease='Influenza, pediatric death' then State_Annual_Cases/multi_race_age_0_17*100000
-		when Demographic='White' and Disease='Influenza, pediatric death' then State_Annual_Cases/white_age_0_17*100000
-		when Demographic='American Indian Alaskan Native' then State_Annual_Cases/ai_an*100000
-		when Demographic='Asian or Native Hawaiian or Pacific Islander' then State_Annual_Cases/asian_pi*100000
-		when Demographic='Black or African American' then State_Annual_Cases/black*100000
-		when Demographic='Multi-Race' then State_Annual_Cases/multi_race*100000
-		when Demographic='White' then State_Annual_Cases/white*100000
-		end as State_Annual_Incidence
+		when Demographic='American Indian Alaskan Native' and Disease='Influenza, adult death' then ai_an_age_18GE
+		when Demographic='Asian or Native Hawaiian or Pacific Islander' and Disease='Influenza, adult death' then asian_pi_age_18GE
+		when Demographic='Black or African American' and Disease='Influenza, adult death' then black_age_18GE
+		when Demographic='Multi-Race' and Disease='Influenza, adult death' then multi_race_age_18GE
+		when Demographic='White' and Disease='Influenza, adult death' then white_age_18GE
+		when Demographic='American Indian Alaskan Native' and Disease='Influenza, pediatric death' then ai_an_age_0_17
+		when Demographic='Asian or Native Hawaiian or Pacific Islander' and Disease='Influenza, pediatric death' then asian_pi_age_0_17
+		when Demographic='Black or African American' and Disease='Influenza, pediatric death' then black_age_0_17
+		when Demographic='Multi-Race' and Disease='Influenza, pediatric death' then multi_race_age_0_17
+		when Demographic='White' and Disease='Influenza, pediatric death' then white_age_0_17
+		when Demographic='American Indian Alaskan Native' then ai_an
+		when Demographic='Asian or Native Hawaiian or Pacific Islander' then asian_pi
+		when Demographic='Black or African American' then black
+		when Demographic='Multi-Race' then multi_race
+		when Demographic='White' then white
+		end as Population_State
 from rates_Race;
 
 proc sql;
 create table rates_Race as
-select a.*, b.*
+select a.*, b.*,
+State_Annual_Cases/Population_State*100000 as State_Annual_Incidence format=10.1
 from rates_Race a left join demo_county_pops_sup b
 	on a.Year=b.year and a.County_substr=b.COUNTY;
 
@@ -1622,47 +1591,70 @@ proc sql;
 create table rates_Race as
 select
 	Year, County_substr, Disease, Disease_Group, Demographic,
-	State_Annual_Cases, State_Annual_Incidence, County_Annual_Cases,
+	State_Annual_Cases, State_Annual_Incidence, County_Annual_Cases, Population_State,
 	case
-		when Demographic='American Indian Alaskan Native' and Disease='Influenza, adult death' then County_Annual_Cases/ai_an_age_18GE*100000
-		when Demographic='Asian or Native Hawaiian or Pacific Islander' and Disease='Influenza, adult death' then County_Annual_Cases/asian_pi_age_18GE*100000
-		when Demographic='Black or African American' and Disease='Influenza, adult death' then County_Annual_Cases/black_age_18GE*100000
-		when Demographic='Multi-Race' and Disease='Influenza, adult death' then County_Annual_Cases/multi_race_age_18GE*100000
-		when Demographic='White' and Disease='Influenza, adult death' then County_Annual_Cases/white_age_18GE*100000
-		when Demographic='American Indian Alaskan Native' and Disease='Influenza, pediatric death' then County_Annual_Cases/ai_an_age_0_17*100000
-		when Demographic='Asian or Native Hawaiian or Pacific Islander' and Disease='Influenza, pediatric death' then County_Annual_Cases/asian_pi_age_0_17*100000
-		when Demographic='Black or African American' and Disease='Influenza, pediatric death' then County_Annual_Cases/black_age_0_17*100000
-		when Demographic='Multi-Race' and Disease='Influenza, pediatric death' then County_Annual_Cases/multi_race_age_0_17*100000
-		when Demographic='White' and Disease='Influenza, pediatric death' then County_Annual_Cases/white_age_0_17*100000
-		when Demographic='American Indian Alaskan Native' then County_Annual_Cases/ai_an*100000
-		when Demographic='Asian or Native Hawaiian or Pacific Islander' then County_Annual_Cases/asian_pi*100000
-		when Demographic='Black or African American' then County_Annual_Cases/black*100000
-		when Demographic='Multi-Race' then County_Annual_Cases/multi_race*100000
-		when Demographic='White' then County_Annual_Cases/white*100000
-		end as County_Annual_Incidence
+		when Demographic='American Indian Alaskan Native' and Disease='Influenza, adult death' then ai_an_age_18GE
+		when Demographic='Asian or Native Hawaiian or Pacific Islander' and Disease='Influenza, adult death' then asian_pi_age_18GE
+		when Demographic='Black or African American' and Disease='Influenza, adult death' then black_age_18GE
+		when Demographic='Multi-Race' and Disease='Influenza, adult death' then multi_race_age_18GE
+		when Demographic='White' and Disease='Influenza, adult death' then white_age_18GE
+		when Demographic='American Indian Alaskan Native' and Disease='Influenza, pediatric death' then ai_an_age_0_17
+		when Demographic='Asian or Native Hawaiian or Pacific Islander' and Disease='Influenza, pediatric death' then asian_pi_age_0_17
+		when Demographic='Black or African American' and Disease='Influenza, pediatric death' then black_age_0_17
+		when Demographic='Multi-Race' and Disease='Influenza, pediatric death' then multi_race_age_0_17
+		when Demographic='White' and Disease='Influenza, pediatric death' then white_age_0_17
+		when Demographic='American Indian Alaskan Native' then ai_an
+		when Demographic='Asian or Native Hawaiian or Pacific Islander' then asian_pi
+		when Demographic='Black or African American' then black
+		when Demographic='Multi-Race' then multi_race
+		when Demographic='White' then white
+		end as Population_County,
+	'Race' as Demographic_Group
 from rates_Race
 order by Year desc, County_substr, Disease, Demographic;
 
+/*data rates_Race;*/
+/*set rates_Race;*/
+/*format County_Annual_Incidence 10.1;*/
+/*County_Annual_Incidence=County_Annual_Cases/Population_County*100000;*/
+/*County_Annual_Cases_Sup=0;*/
+/*State_Annual_Cases_Sup=0;*/
+/*format Suppression $3.;*/
+/*Suppression='No';*/
+/*if Demographic NE 'Missing/Unknown' and Demographic NE 'Other' and State_Annual_Incidence=. then do;*/
+/*	County_Annual_Cases_Sup=County_Annual_Cases;*/
+/*	County_Annual_Cases=0;*/
+/*	State_Annual_Cases_Sup=State_Annual_Cases;*/
+/*	State_Annual_Cases=0;*/
+/*	Suppression='Yes';	end;*/
+/*if Demographic NE 'Missing/Unknown' and Demographic NE 'Other' and County_Annual_Incidence=. then do;*/
+/*	County_Annual_Cases_Sup=County_Annual_Cases;*/
+/*	County_Annual_Cases=0;*/
+/*	Suppression='Yes';	end;*/
+/*Demographic_Group='Race';*/
+/*run;*/
+
+%suppress_cases(rates_Race);
+%secondary_suppress (rates_Race);
+
 data rates_Race;
 set rates_Race;
-if Demographic NE 'Missing/Unknown' and State_Annual_Incidence=. then do;
-	State_Annual_Cases=.; County_Annual_Cases=.; end;
-if Demographic NE 'Missing/Unknown' and County_Annual_Incidence=. then County_Annual_Cases=.;
-DemographicGroup='Race';
+Demographic_Group='Race';
 run;
 
 
 
 /*Combine*/
+
 /*proc sql;*/
 /*create table demographic_simple as*/
 /*select rates_AgeGroup.*, rates_GENDER.*, rates_HISPANIC.*, rates_Race.**/
 /*from rates_AgeGroup a left join rates_GENDER b*/
-/*	on a.Year=b.Year and a.County_substr=b.County_substr and a.Disease=b.Disease and a.DemographicGroup=b.DemographicGroup*/
+/*	on a.Year=b.Year and a.County_substr=b.County_substr and a.Disease=b.Disease and a.Demographic_Group=b.Demographic_Group*/
 /*left join rates_HISPANIC c*/
-/*	on a.Year=c.Year and a.County_substr=c.County_substr and a.Disease=c.Disease and a.DemographicGroup=c.DemographicGroup*/
+/*	on a.Year=c.Year and a.County_substr=c.County_substr and a.Disease=c.Disease and a.Demographic_Group=c.Demographic_Group*/
 /*left join rates_Race d*/
-/*	on a.Year=d.Year and a.County_substr=d.County_substr and a.Disease=d.Disease and a.DemographicGroup=d.DemographicGroup*/
+/*	on a.Year=d.Year and a.County_substr=d.County_substr and a.Disease=d.Disease and a.Demographic_Group=d.Demographic_Group*/
 /*order by Year desc, County_substr, Disease, GENDER, AgeGroup, Race, HISPANIC;*/
 
 data demographic_simple;
@@ -1712,6 +1704,7 @@ from agg_GENDERXAge a left join agg_GENDERXAge_state b
 	on a.Year=b.year and a.Disease=b.Disease and a.Demographic=b.Demographic and a.Demographic2=b.Demographic2
 order by Year desc, County_substr, Disease, Demographic, Demographic2;
 
+
 proc sql;
 create table rates_GENDERXAge as
 select a.*, b.*
@@ -1723,24 +1716,25 @@ create table rates_GENDERXAge as
 select
 	Year, County_substr, Disease, Disease_Group, Demographic, Demographic2, County_Annual_Cases, State_Annual_Cases,
 	case
-			when Demographic='Female' and Demographic2='0-12' then State_Annual_Cases/female_0_12*100000
-			when Demographic='Female' and Demographic2='13-17' then State_Annual_Cases/female_13_17*100000
-			when Demographic='Female' and Demographic2='18-24' then State_Annual_Cases/female_18_24*100000
-			when Demographic='Female' and Demographic2='25-49' then State_Annual_Cases/female_25_49*100000
-			when Demographic='Female' and Demographic2='50-64' then State_Annual_Cases/female_50_64*100000
-			when Demographic='Female' and Demographic2='65+' then State_Annual_Cases/female_65GE*100000
-			when Demographic='Male' and Demographic2='0-12' then State_Annual_Cases/male_0_12*100000
-			when Demographic='Male' and Demographic2='13-17' then State_Annual_Cases/male_13_17*100000
-			when Demographic='Male' and Demographic2='18-24' then State_Annual_Cases/male_18_24*100000
-			when Demographic='Male' and Demographic2='25-49' then State_Annual_Cases/male_25_49*100000
-			when Demographic='Male' and Demographic2='50-64' then State_Annual_Cases/male_50_64*100000
-			when Demographic='Male' and Demographic2='65+' then State_Annual_Cases/male_65GE*100000
-		end as State_Annual_Incidence
+			when Demographic='Female' and Demographic2='0-12' then female_0_12
+			when Demographic='Female' and Demographic2='13-17' then female_13_17
+			when Demographic='Female' and Demographic2='18-24' then female_18_24
+			when Demographic='Female' and Demographic2='25-49' then female_25_49
+			when Demographic='Female' and Demographic2='50-64' then female_50_64
+			when Demographic='Female' and Demographic2='65+' then female_65GE
+			when Demographic='Male' and Demographic2='0-12' then male_0_12
+			when Demographic='Male' and Demographic2='13-17' then male_13_17
+			when Demographic='Male' and Demographic2='18-24' then male_18_24
+			when Demographic='Male' and Demographic2='25-49' then male_25_49
+			when Demographic='Male' and Demographic2='50-64' then male_50_64
+			when Demographic='Male' and Demographic2='65+' then male_65GE
+		end as Population_State
 from rates_GENDERXAge;
 
 proc sql;
 create table rates_GENDERXAge as
-select a.*, b.*
+select a.*, b.*,
+State_Annual_Cases/Population_State*100000 as State_Annual_Incidence format=10.1
 from rates_GENDERXAge a left join demo_county_pops_sup b
 	on a.Year=b.year and a.County_substr=b.COUNTY;
 
@@ -1748,31 +1742,46 @@ proc sql;
 create table rates_GENDERXAge as
 select
 	Year, County_substr, Disease, Disease_Group, Demographic, Demographic2,
-	State_Annual_Cases, State_Annual_Incidence, County_Annual_Cases,
+	State_Annual_Cases, State_Annual_Incidence, County_Annual_Cases, Population_State,
 	case
-			when Demographic='Female' and Demographic2='0-12' then County_Annual_Cases/female_0_12*100000
-			when Demographic='Female' and Demographic2='13-17' then County_Annual_Cases/female_13_17*100000
-			when Demographic='Female' and Demographic2='18-24' then County_Annual_Cases/female_18_24*100000
-			when Demographic='Female' and Demographic2='25-49' then County_Annual_Cases/female_25_49*100000
-			when Demographic='Female' and Demographic2='50-64' then County_Annual_Cases/female_50_64*100000
-			when Demographic='Female' and Demographic2='65+' then County_Annual_Cases/female_65GE*100000
-			when Demographic='Male' and Demographic2='0-12' then County_Annual_Cases/male_0_12*100000
-			when Demographic='Male' and Demographic2='13-17' then County_Annual_Cases/male_13_17*100000
-			when Demographic='Male' and Demographic2='18-24' then County_Annual_Cases/male_18_24*100000
-			when Demographic='Male' and Demographic2='25-49' then County_Annual_Cases/male_25_49*100000
-			when Demographic='Male' and Demographic2='50-64' then County_Annual_Cases/male_50_64*100000
-			when Demographic='Male' and Demographic2='65+' then County_Annual_Cases/male_65GE*100000
-		end as County_Annual_Incidence
+			when Demographic='Female' and Demographic2='0-12' then female_0_12
+			when Demographic='Female' and Demographic2='13-17' then female_13_17
+			when Demographic='Female' and Demographic2='18-24' then female_18_24
+			when Demographic='Female' and Demographic2='25-49' then female_25_49
+			when Demographic='Female' and Demographic2='50-64' then female_50_64
+			when Demographic='Female' and Demographic2='65+' then female_65GE
+			when Demographic='Male' and Demographic2='0-12' then male_0_12
+			when Demographic='Male' and Demographic2='13-17' then male_13_17
+			when Demographic='Male' and Demographic2='18-24' then male_18_24
+			when Demographic='Male' and Demographic2='25-49' then male_25_49
+			when Demographic='Male' and Demographic2='50-64' then male_50_64
+			when Demographic='Male' and Demographic2='65+' then male_65GE
+		end as Population_County
 from rates_GENDERXAge
 order by Year desc, County_substr, Disease, Demographic, Demographic2;
 
 data rates_GENDERXAge;
 set rates_GENDERXAge;
-if Demographic NE '' and left(Demographic2) NE '.' and State_Annual_Incidence=. then do;
-	State_Annual_Cases=.; County_Annual_Cases=.; end;
-if Demographic NE '' and left(Demographic2) NE '.' and County_Annual_Incidence=. then County_Annual_Cases=.;
-DemographicGroup='Gender by Age Group';
+format County_Annual_Incidence 10.1;
+County_Annual_Incidence=County_Annual_Cases/Population_County*100000;
+County_Annual_Cases_Sup=0;
+State_Annual_Cases_Sup=0;
+/*format Suppression $3.;*/
+/*Suppression='No';*/
+if Demographic NE '' and Demographic2 NE 'Missing/Unknown' and State_Annual_Incidence=. then do;
+	County_Annual_Cases_Sup=County_Annual_Cases;
+	County_Annual_Cases=0;
+	State_Annual_Cases_Sup=State_Annual_Cases;
+	State_Annual_Cases=0; State_Annual_Incidence=0;
+	/*Suppression='Yes';*/	end;
+if Demographic NE '' and Demographic2 NE 'Missing/Unknown' and County_Annual_Incidence=. then do;
+	County_Annual_Cases_Sup=County_Annual_Cases;
+	County_Annual_Cases=0;
+	/*Suppression='Yes';*/	end;
+Demographic_Group='Gender by Age Group';
 run;
+
+%secondary_suppress_mult (rates_GENDERXAge);
 
 /*proc export data=rates_GENDERXAge*/
 /*    outfile="T:\Tableau\NCD3 2.0\NCD3 2.0 Output\Tableau Data Sources\2-1-24_data_GENDERXAge.xlsx"*/
@@ -1822,158 +1831,178 @@ select
 	Year, County_substr, Disease, Disease_Group, Demographic, Demographic2, County_Annual_Cases, State_Annual_Cases,
 	case
 			when Demographic='Female' and Demographic2='American Indian Alaskan Native'
-				then State_Annual_Cases/female_ai_an*100000
+				then female_ai_an
 			when Demographic='Female' and Demographic2='Asian or Native Hawaiian or Pacific Islander'
-				then State_Annual_Cases/female_asian_pi*100000
+				then female_asian_pi
 			when Demographic='Female' and Demographic2='Black or African American'
-				then State_Annual_Cases/female_black*100000
+				then female_black
 			when Demographic='Female' and Demographic2='Multi-Race'
-				then State_Annual_Cases/female_multi_race*100000
+				then female_multi_race
 			when Demographic='Female' and Demographic2='White'
-				then State_Annual_Cases/female_white*100000
+				then female_white
 
 			when Demographic='Female' and Demographic2='American Indian Alaskan Native' and Disease='Influenza, adult death'
-				then State_Annual_Cases/female_ai_an_age_18GE*100000
+				then female_ai_an_age_18GE
 			when Demographic='Female' and Demographic2='Asian or Native Hawaiian or Pacific Islander' and Disease='Influenza, adult death'
-				then State_Annual_Cases/female_asian_pi_age_18GE*100000
+				then female_asian_pi_age_18GE
 			when Demographic='Female' and Demographic2='Black or African American' and Disease='Influenza, adult death'
-				then State_Annual_Cases/female_black_age_18GE*100000
+				then female_black_age_18GE
 			when Demographic='Female' and Demographic2='Multi-Race' and Disease='Influenza, adult death'
-				then State_Annual_Cases/female_multi_race_age_18GE*100000
+				then female_multi_race_age_18GE
 			when Demographic='Female' and Demographic2='White' and Disease='Influenza, adult death'
-				then State_Annual_Cases/female_white_age_18GE*100000
+				then female_white_age_18GE
 			when Demographic='Female' and Demographic2='American Indian Alaskan Native' and Disease='Influenza, pediatric death'
-				then State_Annual_Cases/female_ai_an_age_0_17*100000
+				then female_ai_an_age_0_17
 			when Demographic='Female' and Demographic2='Asian or Native Hawaiian or Pacific Islander' and Disease='Influenza, pediatric death'
-				then State_Annual_Cases/female_asian_pi_age_0_17*100000
+				then female_asian_pi_age_0_17
 			when Demographic='Female' and Demographic2='Black or African American' and Disease='Influenza, pediatric death'
-				then State_Annual_Cases/female_black_age_0_17*100000
+				then female_black_age_0_17
 			when Demographic='Female' and Demographic2='Multi-Race' and Disease='Influenza, pediatric death'
-				then State_Annual_Cases/female_multi_race_age_0_17*100000
+				then female_multi_race_age_0_17
 			when Demographic='Female' and Demographic2='White' and Disease='Influenza, pediatric death'
-				then State_Annual_Cases/female_white_age_0_17*100000
+				then female_white_age_0_17
 
 			when Demographic='Male' and Demographic2='American Indian Alaskan Native'
-				then State_Annual_Cases/male_ai_an*100000
+				then male_ai_an
 			when Demographic='Male' and Demographic2='Asian or Native Hawaiian or Pacific Islander'
-				then State_Annual_Cases/male_asian_pi*100000
+				then male_asian_pi
 			when Demographic='Male' and Demographic2='Black or African American'
-				then State_Annual_Cases/male_black*100000
+				then male_black
 			when Demographic='Male' and Demographic2='Multi-Race'
-				then State_Annual_Cases/male_multi_race*100000
+				then male_multi_race
 			when Demographic='Male' and Demographic2='White'
-				then State_Annual_Cases/male_white*100000
+				then male_white
 
 			when Demographic='Male' and Demographic2='American Indian Alaskan Native' and Disease='Influenza, adult death'
-				then State_Annual_Cases/male_ai_an_age_18GE*100000
+				then male_ai_an_age_18GE
 			when Demographic='Male' and Demographic2='Asian or Native Hawaiian or Pacific Islander' and Disease='Influenza, adult death'
-				then State_Annual_Cases/male_asian_pi_age_18GE*100000
+				then male_asian_pi_age_18GE
 			when Demographic='Male' and Demographic2='Black or African American' and Disease='Influenza, adult death'
-				then State_Annual_Cases/male_black_age_18GE*100000
+				then male_black_age_18GE
 			when Demographic='Male' and Demographic2='Multi-Race' and Disease='Influenza, adult death'
-				then State_Annual_Cases/male_multi_race_age_18GE*100000
+				then male_multi_race_age_18GE
 			when Demographic='Male' and Demographic2='White' and Disease='Influenza, adult death'
-				then State_Annual_Cases/male_white_age_18GE*100000
+				then male_white_age_18GE
 			when Demographic='Male' and Demographic2='American Indian Alaskan Native' and Disease='Influenza, pediatric death'
-				then State_Annual_Cases/male_ai_an_age_0_17*100000
+				then male_ai_an_age_0_17
 			when Demographic='Male' and Demographic2='Asian or Native Hawaiian or Pacific Islander' and Disease='Influenza, pediatric death'
-				then State_Annual_Cases/male_asian_pi_age_0_17*100000
+				then male_asian_pi_age_0_17
 			when Demographic='Male' and Demographic2='Black or African American' and Disease='Influenza, pediatric death'
-				then State_Annual_Cases/male_black_age_0_17*100000
+				then male_black_age_0_17
 			when Demographic='Male' and Demographic2='Multi-Race' and Disease='Influenza, pediatric death'
-				then State_Annual_Cases/male_multi_race_age_0_17*100000
+				then male_multi_race_age_0_17
 			when Demographic='Male' and Demographic2='White' and Disease='Influenza, pediatric death'
-				then State_Annual_Cases/male_white_age_0_17*100000
+				then male_white_age_0_17
 
-		end as State_Annual_Incidence
+		end as Population_State
 from rates_GENDERXRace;
 
 proc sql;
 create table rates_GENDERXRace as
-select a.*, b.*
+select a.*, b.*,
+State_Annual_Cases/Population_State*100000 as State_Annual_Incidence format=10.1
 from rates_GENDERXRace a left join demo_county_pops_sup b
 	on a.Year=b.year and a.County_substr=b.COUNTY;
 
 proc sql;
 create table rates_GENDERXRace as
 select
-	Year, County_substr, Disease, Disease_Group, Demographic, Demographic2,
+	Year, County_substr, Disease, Disease_Group, Demographic, Demographic2, Population_State,
 	State_Annual_Cases, State_Annual_Incidence, County_Annual_Cases,
 	case
 			when Demographic='Female' and Demographic2='American Indian Alaskan Native'
-				then County_Annual_Cases/female_ai_an*100000
+				then female_ai_an
 			when Demographic='Female' and Demographic2='Asian or Native Hawaiian or Pacific Islander'
-				then County_Annual_Cases/female_asian_pi*100000
+				then female_asian_pi
 			when Demographic='Female' and Demographic2='Black or African American'
-				then County_Annual_Cases/female_black*100000
+				then female_black
 			when Demographic='Female' and Demographic2='Multi-Race'
-				then County_Annual_Cases/female_multi_race*100000
+				then female_multi_race
 			when Demographic='Female' and Demographic2='White'
-				then County_Annual_Cases/female_white*100000
+				then female_white
 			when Demographic='Male' and Demographic2='American Indian Alaskan Native'
-				then County_Annual_Cases/male_ai_an*100000
+				then male_ai_an
 			when Demographic='Male' and Demographic2='Asian or Native Hawaiian or Pacific Islander'
-				then County_Annual_Cases/male_asian_pi*100000
+				then male_asian_pi
 			when Demographic='Male' and Demographic2='Black or African American'
-				then County_Annual_Cases/male_black*100000
+				then male_black
 			when Demographic='Male' and Demographic2='Multi-Race'
-				then County_Annual_Cases/male_multi_race*100000
+				then male_multi_race
 			when Demographic='Male' and Demographic2='White'
-				then County_Annual_Cases/male_white*100000
+				then male_white
 
 			when Demographic='Female' and Demographic2='American Indian Alaskan Native' and Disease='Influenza, adult death'
-				then County_Annual_Cases/female_ai_an_age_18GE*100000
+				then female_ai_an_age_18GE
 			when Demographic='Female' and Demographic2='Asian or Native Hawaiian or Pacific Islander' and Disease='Influenza, adult death'
-				then County_Annual_Cases/female_asian_pi_age_18GE*100000
+				then female_asian_pi_age_18GE
 			when Demographic='Female' and Demographic2='Black or African American' and Disease='Influenza, adult death'
-				then County_Annual_Cases/female_black_age_18GE*100000
+				then female_black_age_18GE
 			when Demographic='Female' and Demographic2='Multi-Race' and Disease='Influenza, adult death'
-				then County_Annual_Cases/female_multi_race_age_18GE*100000
+				then female_multi_race_age_18GE
 			when Demographic='Female' and Demographic2='White' and Disease='Influenza, adult death'
-				then County_Annual_Cases/female_white_age_18GE*100000
+				then female_white_age_18GE
 			when Demographic='Male' and Demographic2='American Indian Alaskan Native' and Disease='Influenza, adult death'
-				then County_Annual_Cases/male_ai_an_age_18GE*100000
+				then male_ai_an_age_18GE
 			when Demographic='Male' and Demographic2='Asian or Native Hawaiian or Pacific Islander' and Disease='Influenza, adult death'
-				then County_Annual_Cases/male_asian_pi_age_18GE*100000
+				then male_asian_pi_age_18GE
 			when Demographic='Male' and Demographic2='Black or African American' and Disease='Influenza, adult death'
-				then County_Annual_Cases/male_black_age_18GE*100000
+				then male_black_age_18GE
 			when Demographic='Male' and Demographic2='Multi-Race' and Disease='Influenza, adult death'
-				then County_Annual_Cases/male_multi_race_age_18GE*100000
+				then male_multi_race_age_18GE
 			when Demographic='Male' and Demographic2='White' and Disease='Influenza, adult death'
-				then County_Annual_Cases/male_white_age_18GE*100000
+				then male_white_age_18GE
 
 			when Demographic='Female' and Demographic2='American Indian Alaskan Native' and Disease='Influenza, pediatric death'
-				then County_Annual_Cases/female_ai_an_age_0_17*100000
+				then female_ai_an_age_0_17
 			when Demographic='Female' and Demographic2='Asian or Native Hawaiian or Pacific Islander' and Disease='Influenza, pediatric death'
-				then County_Annual_Cases/female_asian_pi_age_0_17*100000
+				then female_asian_pi_age_0_17
 			when Demographic='Female' and Demographic2='Black or African American' and Disease='Influenza, pediatric death'
-				then County_Annual_Cases/female_black_age_0_17*100000
+				then female_black_age_0_17
 			when Demographic='Female' and Demographic2='Multi-Race' and Disease='Influenza, pediatric death'
-				then County_Annual_Cases/female_multi_race_age_0_17*100000
+				then female_multi_race_age_0_17
 			when Demographic='Female' and Demographic2='White' and Disease='Influenza, pediatric death'
-				then County_Annual_Cases/female_white_age_0_17*100000
+				then female_white_age_0_17
 			when Demographic='Male' and Demographic2='American Indian Alaskan Native' and Disease='Influenza, pediatric death'
-				then County_Annual_Cases/male_ai_an_age_0_17*100000
+				then male_ai_an_age_0_17
 			when Demographic='Male' and Demographic2='Asian or Native Hawaiian or Pacific Islander' and Disease='Influenza, pediatric death'
-				then County_Annual_Cases/male_asian_pi_age_0_17*100000
+				then male_asian_pi_age_0_17
 			when Demographic='Male' and Demographic2='Black or African American' and Disease='Influenza, pediatric death'
-				then County_Annual_Cases/male_black_age_0_17*100000
+				then male_black_age_0_17
 			when Demographic='Male' and Demographic2='Multi-Race' and Disease='Influenza, pediatric death'
-				then County_Annual_Cases/male_multi_race_age_0_17*100000
+				then male_multi_race_age_0_17
 			when Demographic='Male' and Demographic2='White' and Disease='Influenza, pediatric death'
-				then County_Annual_Cases/male_white_age_0_17*100000
+				then male_white_age_0_17
 
-		end as County_Annual_Incidence
+		end as Population_County
 from rates_GENDERXRace
 order by Year desc, County_substr, Disease, Demographic, Demographic2;
 
 data rates_GENDERXRace;
 set rates_GENDERXRace;
-if Demographic NE '' and Demographic2 NE '' and State_Annual_Incidence=. then do;
-	State_Annual_Cases=.; County_Annual_Cases=.; end;
-if Demographic NE '' and Demographic2 NE '' and County_Annual_Incidence=. then County_Annual_Cases=.;
-DemographicGroup='Gender by Race';
+format County_Annual_Incidence 10.1;
+County_Annual_Incidence=County_Annual_Cases/Population_County*100000;
+County_Annual_Cases_Sup=0;
+State_Annual_Cases_Sup=0;
+/*format Suppression $3.;*/
+/*Suppression='No';*/
+if Demographic NE '' and Demographic2 NE 'Missing/Unknown' and Demographic2 NE 'Other'
+		and State_Annual_Incidence=. then do;
+	County_Annual_Cases_Sup=County_Annual_Cases;
+	County_Annual_Cases=0;
+	State_Annual_Cases_Sup=State_Annual_Cases;
+	State_Annual_Cases=0;
+/*	Suppression='Yes';*/
+		end;
+if Demographic NE '' and Demographic2 NE 'Missing/Unknown' and Demographic2 NE 'Other'
+		and County_Annual_Incidence=. then do;
+	County_Annual_Cases_Sup=County_Annual_Cases;
+	County_Annual_Cases=0;
+/*	Suppression='Yes';*/
+		end;
+Demographic_Group='Gender by Race';
 run;
+
+%secondary_suppress_mult (rates_GENDERXRace);
 
 
 /*Gender X HISPANIC*/
@@ -2015,27 +2044,28 @@ create table rates_GENDERXHISPANIC as
 select
 	Year, County_substr, Disease, Disease_Group, Demographic, Demographic2, County_Annual_Cases, State_Annual_Cases,
 	case
-			when Demographic='Female' and Demographic2='Hispanic' then State_Annual_Cases/female_hisp*100000
-			when Demographic='Female' and Demographic2='Non-Hispanic' then State_Annual_Cases/female_nonhisp*100000
-			when Demographic='Male' and Demographic2='Hispanic' then State_Annual_Cases/male_hisp*100000
-			when Demographic='Male' and Demographic2='Non-Hispanic' then State_Annual_Cases/male_nonhisp*100000
+			when Demographic='Female' and Demographic2='Hispanic' then female_hisp
+			when Demographic='Female' and Demographic2='Non-Hispanic' then female_nonhisp
+			when Demographic='Male' and Demographic2='Hispanic' then male_hisp
+			when Demographic='Male' and Demographic2='Non-Hispanic' then male_nonhisp
 
-			when Demographic='Female' and Demographic2='Hispanic' and Disease='Influenza, adult death' then State_Annual_Cases/female_hisp_age_18GE*100000
-			when Demographic='Female' and Demographic2='Non-Hispanic' and Disease='Influenza, adult death' then State_Annual_Cases/female_nonhisp_age_18GE*100000
-			when Demographic='Male' and Demographic2='Hispanic' and Disease='Influenza, adult death' then State_Annual_Cases/male_hisp_age_18GE*100000
-			when Demographic='Male' and Demographic2='Non-Hispanic' and Disease='Influenza, adult death' then State_Annual_Cases/male_nonhisp_age_18GE*100000
+			when Demographic='Female' and Demographic2='Hispanic' and Disease='Influenza, adult death' then female_hisp_age_18GE
+			when Demographic='Female' and Demographic2='Non-Hispanic' and Disease='Influenza, adult death' then female_nonhisp_age_18GE
+			when Demographic='Male' and Demographic2='Hispanic' and Disease='Influenza, adult death' then male_hisp_age_18GE
+			when Demographic='Male' and Demographic2='Non-Hispanic' and Disease='Influenza, adult death' then male_nonhisp_age_18GE
 
-			when Demographic='Female' and Demographic2='Hispanic' and Disease='Influenza, pediatric death' then State_Annual_Cases/female_hisp_age_0_17*100000
-			when Demographic='Female' and Demographic2='Non-Hispanic' and Disease='Influenza, pediatric death' then State_Annual_Cases/female_nonhisp_age_0_17*100000
-			when Demographic='Male' and Demographic2='Hispanic' and Disease='Influenza, pediatric death' then State_Annual_Cases/male_hisp_age_0_17*100000
-			when Demographic='Male' and Demographic2='non-Hispanic' and Disease='Influenza, pediatric death' then State_Annual_Cases/male_nonhisp_age_0_17*100000
+			when Demographic='Female' and Demographic2='Hispanic' and Disease='Influenza, pediatric death' then female_hisp_age_0_17
+			when Demographic='Female' and Demographic2='Non-Hispanic' and Disease='Influenza, pediatric death' then female_nonhisp_age_0_17
+			when Demographic='Male' and Demographic2='Hispanic' and Disease='Influenza, pediatric death' then male_hisp_age_0_17
+			when Demographic='Male' and Demographic2='non-Hispanic' and Disease='Influenza, pediatric death' then male_nonhisp_age_0_17
 
-		end as State_Annual_Incidence
+		end as Population_State
 from rates_GENDERXHISPANIC;
 
 proc sql;
 create table rates_GENDERXHISPANIC as
-select a.*, b.*
+select a.*, b.*,
+State_Annual_Cases/Population_State*100000 as State_Annual_Incidence format=10.1
 from rates_GENDERXHISPANIC a left join demo_county_pops_sup b
 	on a.Year=b.year and a.County_substr=b.COUNTY;
 
@@ -2043,34 +2073,51 @@ proc sql;
 create table rates_GENDERXHISPANIC as
 select
 	Year, County_substr, Disease, Disease_Group, Demographic, Demographic2,
-	State_Annual_Cases, State_Annual_Incidence, County_Annual_Cases,
+	State_Annual_Cases, State_Annual_Incidence, County_Annual_Cases, Population_State,
 	case
-			when Demographic='Female' and Demographic2='Hispanic' then County_Annual_Cases/female_hisp*100000
-			when Demographic='Female' and Demographic2='Non-Hispanic' then County_Annual_Cases/female_nonhisp*100000
-			when Demographic='Male' and Demographic2='Hispanic' then County_Annual_Cases/male_hisp*100000
-			when Demographic='Male' and Demographic2='Non-Hispanic' then County_Annual_Cases/male_nonhisp*100000
+			when Demographic='Female' and Demographic2='Hispanic' then female_hisp
+			when Demographic='Female' and Demographic2='Non-Hispanic' then female_nonhisp
+			when Demographic='Male' and Demographic2='Hispanic' then male_hisp
+			when Demographic='Male' and Demographic2='Non-Hispanic' then male_nonhisp
 
-			when Demographic='Female' and Demographic2='Hispanic' and Disease='Influenza, adult death' then County_Annual_Cases/female_hisp_age_18GE*100000
-			when Demographic='Female' and Demographic2='Non-Hispanic' and Disease='Influenza, adult death' then County_Annual_Cases/female_nonhisp_age_18GE*100000
-			when Demographic='Male' and Demographic2='Hispanic' and Disease='Influenza, adult death' then County_Annual_Cases/male_hisp_age_18GE*100000
-			when Demographic='Male' and Demographic2='Non-Hispanic' and Disease='Influenza, adult death' then County_Annual_Cases/male_nonhisp_age_18GE*100000
+			when Demographic='Female' and Demographic2='Hispanic' and Disease='Influenza, adult death' then female_hisp_age_18GE
+			when Demographic='Female' and Demographic2='Non-Hispanic' and Disease='Influenza, adult death' then female_nonhisp_age_18GE
+			when Demographic='Male' and Demographic2='Hispanic' and Disease='Influenza, adult death' then male_hisp_age_18GE
+			when Demographic='Male' and Demographic2='Non-Hispanic' and Disease='Influenza, adult death' then male_nonhisp_age_18GE
 
-			when Demographic='Female' and Demographic2='Hispanic' and Disease='Influenza, pediatric death' then County_Annual_Cases/female_hisp_age_0_17*100000
-			when Demographic='Female' and Demographic2='Non-Hispanic' and Disease='Influenza, pediatric death' then County_Annual_Cases/female_nonhisp_age_0_17*100000
-			when Demographic='Male' and Demographic2='Hispanic' and Disease='Influenza, pediatric death' then County_Annual_Cases/male_hisp_age_0_17*100000
-			when Demographic='Male' and Demographic2='Non-Hispanic' and Disease='Influenza, pediatric death' then County_Annual_Cases/male_nonhisp_age_0_17*100000
+			when Demographic='Female' and Demographic2='Hispanic' and Disease='Influenza, pediatric death' then female_hisp_age_0_17
+			when Demographic='Female' and Demographic2='Non-Hispanic' and Disease='Influenza, pediatric death' then female_nonhisp_age_0_17
+			when Demographic='Male' and Demographic2='Hispanic' and Disease='Influenza, pediatric death' then male_hisp_age_0_17
+			when Demographic='Male' and Demographic2='Non-Hispanic' and Disease='Influenza, pediatric death' then male_nonhisp_age_0_17
 
-		end as County_Annual_Incidence
+		end as Population_County
 from rates_GENDERXHISPANIC
 order by Year desc, County_substr, Disease, Demographic, Demographic2;
 
 data rates_GENDERXHISPANIC;
 set rates_GENDERXHISPANIC;
-if Demographic NE '' and Demographic2 NE '' and Demographic2 NE 'Missing/Unknown' and State_Annual_Incidence=. then do;
-	State_Annual_Cases=.; County_Annual_Cases=.; end;
-if Demographic NE '' and Demographic2 NE '' and Demographic2 NE 'Missing/Unknown' and County_Annual_Incidence=. then County_Annual_Cases=.;
-DemographicGroup='Gender by Ethnicity';
+format County_Annual_Incidence 10.1;
+County_Annual_Incidence=County_Annual_Cases/Population_County*100000;
+County_Annual_Cases_Sup=0;
+State_Annual_Cases_Sup=0;
+/*format Suppression $3.;*/
+/*Suppression='No';*/
+if Demographic NE '' and Demographic2 NE 'Missing/Unknown' and State_Annual_Incidence=. then do;
+	County_Annual_Cases_Sup=County_Annual_Cases;
+	County_Annual_Cases=0;
+	State_Annual_Cases_Sup=State_Annual_Cases;
+	State_Annual_Cases=0;
+/*	Suppression='Yes';*/
+		end;
+if Demographic NE '' and Demographic2 NE 'Missing/Unknown' and County_Annual_Incidence=. then do;
+	County_Annual_Cases_Sup=County_Annual_Cases;
+	County_Annual_Cases=0;
+/*	Suppression='Yes';*/
+		end;
+Demographic_Group='Gender by Ethnicity';
 run;
+
+%secondary_suppress_mult (rates_GENDERXHISPANIC);
 
 
 /*Race X Age*/
@@ -2105,6 +2152,7 @@ from agg_RaceXAge a left join agg_RaceXAge_state b
 	on a.Year=b.year and a.Disease=b.Disease and a.Demographic=b.Demographic and a.Demographic2=b.Demographic2
 order by Year desc, County_substr, Disease, Demographic, Demographic2;
 
+
 proc sql;
 create table rates_RaceXAge as
 select a.*, b.*
@@ -2116,42 +2164,43 @@ create table rates_RaceXAge as
 select
 	Year, County_substr, Disease, Disease_Group, Demographic, Demographic2, County_Annual_Cases, State_Annual_Cases,
 	case
-			when Demographic='American Indian Alaskan Native' and Demographic2='0-12' then State_Annual_Cases/ai_an_0_12*100000
-			when Demographic='American Indian Alaskan Native' and Demographic2='13-17' then State_Annual_Cases/ai_an_13_17*100000
-			when Demographic='American Indian Alaskan Native' and Demographic2='18-24' then State_Annual_Cases/ai_an_18_24*100000
-			when Demographic='American Indian Alaskan Native' and Demographic2='25-49' then State_Annual_Cases/ai_an_25_49*100000
-			when Demographic='American Indian Alaskan Native' and Demographic2='50-64' then State_Annual_Cases/ai_an_50_64*100000
-			when Demographic='American Indian Alaskan Native' and Demographic2='65+' then State_Annual_Cases/ai_an_65GE*100000
-			when Demographic='Asian or Native Hawaiian or Pacific Islander' and Demographic2='0-12' then State_Annual_Cases/asian_pi_0_12*100000
-			when Demographic='Asian or Native Hawaiian or Pacific Islander' and Demographic2='13-17' then State_Annual_Cases/asian_pi_13_17*100000
-			when Demographic='Asian or Native Hawaiian or Pacific Islander' and Demographic2='18-24' then State_Annual_Cases/asian_pi_18_24*100000
-			when Demographic='Asian or Native Hawaiian or Pacific Islander' and Demographic2='25-49' then State_Annual_Cases/asian_pi_25_49*100000
-			when Demographic='Asian or Native Hawaiian or Pacific Islander' and Demographic2='50-64' then State_Annual_Cases/asian_pi_50_64*100000
-			when Demographic='Asian or Native Hawaiian or Pacific Islander' and Demographic2='65+' then State_Annual_Cases/ai_an_65GE*100000
-			when Demographic='Black or African American' and Demographic2='0-12' then State_Annual_Cases/black_0_12*100000
-			when Demographic='Black or African American' and Demographic2='13-17' then State_Annual_Cases/black_13_17*100000
-			when Demographic='Black or African American' and Demographic2='18-24' then State_Annual_Cases/black_18_24*100000
-			when Demographic='Black or African American' and Demographic2='25-49' then State_Annual_Cases/black_25_49*100000
-			when Demographic='Black or African American' and Demographic2='50-64' then State_Annual_Cases/black_50_64*100000
-			when Demographic='Black or African American' and Demographic2='65+' then State_Annual_Cases/black_65GE*100000
-			when Demographic='Multi-Race' and Demographic2='0-12' then State_Annual_Cases/multi_race_0_12*100000
-			when Demographic='Multi-Race' and Demographic2='13-17' then State_Annual_Cases/multi_race_13_17*100000
-			when Demographic='Multi-Race' and Demographic2='18-24' then State_Annual_Cases/multi_race_18_24*100000
-			when Demographic='Multi-Race' and Demographic2='25-49' then State_Annual_Cases/multi_race_25_49*100000
-			when Demographic='Multi-Race' and Demographic2='50-64' then State_Annual_Cases/multi_race_50_64*100000
-			when Demographic='Multi-Race' and Demographic2='65+' then State_Annual_Cases/multi_race_65GE*100000
-			when Demographic='White' and Demographic2='0-12' then State_Annual_Cases/white_0_12*100000
-			when Demographic='White' and Demographic2='13-17' then State_Annual_Cases/white_13_17*100000
-			when Demographic='White' and Demographic2='18-24' then State_Annual_Cases/white_18_24*100000
-			when Demographic='White' and Demographic2='25-49' then State_Annual_Cases/white_25_49*100000
-			when Demographic='White' and Demographic2='50-64' then State_Annual_Cases/white_50_64*100000
-			when Demographic='White' and Demographic2='65+' then State_Annual_Cases/white_65GE*100000
-		end as State_Annual_Incidence
+			when Demographic='American Indian Alaskan Native' and Demographic2='0-12' then ai_an_0_12
+			when Demographic='American Indian Alaskan Native' and Demographic2='13-17' then ai_an_13_17
+			when Demographic='American Indian Alaskan Native' and Demographic2='18-24' then ai_an_18_24
+			when Demographic='American Indian Alaskan Native' and Demographic2='25-49' then ai_an_25_49
+			when Demographic='American Indian Alaskan Native' and Demographic2='50-64' then ai_an_50_64
+			when Demographic='American Indian Alaskan Native' and Demographic2='65+' then ai_an_65GE
+			when Demographic='Asian or Native Hawaiian or Pacific Islander' and Demographic2='0-12' then asian_pi_0_12
+			when Demographic='Asian or Native Hawaiian or Pacific Islander' and Demographic2='13-17' then asian_pi_13_17
+			when Demographic='Asian or Native Hawaiian or Pacific Islander' and Demographic2='18-24' then asian_pi_18_24
+			when Demographic='Asian or Native Hawaiian or Pacific Islander' and Demographic2='25-49' then asian_pi_25_49
+			when Demographic='Asian or Native Hawaiian or Pacific Islander' and Demographic2='50-64' then asian_pi_50_64
+			when Demographic='Asian or Native Hawaiian or Pacific Islander' and Demographic2='65+' then ai_an_65GE
+			when Demographic='Black or African American' and Demographic2='0-12' then black_0_12
+			when Demographic='Black or African American' and Demographic2='13-17' then black_13_17
+			when Demographic='Black or African American' and Demographic2='18-24' then black_18_24
+			when Demographic='Black or African American' and Demographic2='25-49' then black_25_49
+			when Demographic='Black or African American' and Demographic2='50-64' then black_50_64
+			when Demographic='Black or African American' and Demographic2='65+' then black_65GE
+			when Demographic='Multi-Race' and Demographic2='0-12' then multi_race_0_12
+			when Demographic='Multi-Race' and Demographic2='13-17' then multi_race_13_17
+			when Demographic='Multi-Race' and Demographic2='18-24' then multi_race_18_24
+			when Demographic='Multi-Race' and Demographic2='25-49' then multi_race_25_49
+			when Demographic='Multi-Race' and Demographic2='50-64' then multi_race_50_64
+			when Demographic='Multi-Race' and Demographic2='65+' then multi_race_65GE
+			when Demographic='White' and Demographic2='0-12' then white_0_12
+			when Demographic='White' and Demographic2='13-17' then white_13_17
+			when Demographic='White' and Demographic2='18-24' then white_18_24
+			when Demographic='White' and Demographic2='25-49' then white_25_49
+			when Demographic='White' and Demographic2='50-64' then white_50_64
+			when Demographic='White' and Demographic2='65+' then white_65GE
+		end as Population_State
 from rates_RaceXAge;
 
 proc sql;
 create table rates_RaceXAge as
-select a.*, b.*
+select a.*, b.*,
+State_Annual_Cases/Population_State*100000 as State_Annual_Incidence format=10.1
 from rates_RaceXAge a left join demo_county_pops_sup b
 	on a.Year=b.year and a.County_substr=b.COUNTY;
 
@@ -2159,48 +2208,71 @@ proc sql;
 create table rates_RaceXAge as
 select
 	Year, County_substr, Disease, Disease_Group, Demographic, Demographic2,
-	State_Annual_Cases, State_Annual_Incidence, County_Annual_Cases,
+	State_Annual_Cases, State_Annual_Incidence, County_Annual_Cases, Population_State,
 	case
-			when Demographic='American Indian Alaskan Native' and Demographic2='0-12' then County_Annual_Cases/ai_an_0_12*100000
-			when Demographic='American Indian Alaskan Native' and Demographic2='13-17' then County_Annual_Cases/ai_an_13_17*100000
-			when Demographic='American Indian Alaskan Native' and Demographic2='18-24' then County_Annual_Cases/ai_an_18_24*100000
-			when Demographic='American Indian Alaskan Native' and Demographic2='25-49' then County_Annual_Cases/ai_an_25_49*100000
-			when Demographic='American Indian Alaskan Native' and Demographic2='50-64' then County_Annual_Cases/ai_an_50_64*100000
-			when Demographic='American Indian Alaskan Native' and Demographic2='65+' then County_Annual_Cases/ai_an_65GE*100000
-			when Demographic='Asian or Native Hawaiian or Pacific Islander' and Demographic2='0-12' then County_Annual_Cases/asian_pi_0_12*100000
-			when Demographic='Asian or Native Hawaiian or Pacific Islander' and Demographic2='13-17' then County_Annual_Cases/asian_pi_13_17*100000
-			when Demographic='Asian or Native Hawaiian or Pacific Islander' and Demographic2='18-24' then County_Annual_Cases/asian_pi_18_24*100000
-			when Demographic='Asian or Native Hawaiian or Pacific Islander' and Demographic2='25-49' then County_Annual_Cases/asian_pi_25_49*100000
-			when Demographic='Asian or Native Hawaiian or Pacific Islander' and Demographic2='50-64' then County_Annual_Cases/asian_pi_50_64*100000
-			when Demographic='Asian or Native Hawaiian or Pacific Islander' and Demographic2='65+' then County_Annual_Cases/ai_an_65GE*100000
-			when Demographic='Black or African American' and Demographic2='0-12' then County_Annual_Cases/black_0_12*100000
-			when Demographic='Black or African American' and Demographic2='13-17' then County_Annual_Cases/black_13_17*100000
-			when Demographic='Black or African American' and Demographic2='18-24' then County_Annual_Cases/black_18_24*100000
-			when Demographic='Black or African American' and Demographic2='25-49' then County_Annual_Cases/black_25_49*100000
-			when Demographic='Black or African American' and Demographic2='50-64' then County_Annual_Cases/black_50_64*100000
-			when Demographic='Black or African American' and Demographic2='65+' then County_Annual_Cases/black_65GE*100000
-			when Demographic='Multi-Race' and Demographic2='0-12' then County_Annual_Cases/multi_race_0_12*100000
-			when Demographic='Multi-Race' and Demographic2='13-17' then County_Annual_Cases/multi_race_13_17*100000
-			when Demographic='Multi-Race' and Demographic2='18-24' then County_Annual_Cases/multi_race_18_24*100000
-			when Demographic='Multi-Race' and Demographic2='25-49' then County_Annual_Cases/multi_race_25_49*100000
-			when Demographic='Multi-Race' and Demographic2='50-64' then County_Annual_Cases/multi_race_50_64*100000
-			when Demographic='Multi-Race' and Demographic2='65+' then County_Annual_Cases/multi_race_65GE*100000
-			when Demographic='White' and Demographic2='0-12' then County_Annual_Cases/white_0_12*100000
-			when Demographic='White' and Demographic2='13-17' then County_Annual_Cases/white_13_17*100000
-			when Demographic='White' and Demographic2='18-24' then County_Annual_Cases/white_18_24*100000
-			when Demographic='White' and Demographic2='25-49' then County_Annual_Cases/white_25_49*100000
-			when Demographic='White' and Demographic2='50-64' then County_Annual_Cases/white_50_64*100000
-			when Demographic='White' and Demographic2='65+' then County_Annual_Cases/white_65GE*100000
-	end as County_Annual_Incidence
+			when Demographic='American Indian Alaskan Native' and Demographic2='0-12' then ai_an_0_12
+			when Demographic='American Indian Alaskan Native' and Demographic2='13-17' then ai_an_13_17
+			when Demographic='American Indian Alaskan Native' and Demographic2='18-24' then ai_an_18_24
+			when Demographic='American Indian Alaskan Native' and Demographic2='25-49' then ai_an_25_49
+			when Demographic='American Indian Alaskan Native' and Demographic2='50-64' then ai_an_50_64
+			when Demographic='American Indian Alaskan Native' and Demographic2='65+' then ai_an_65GE
+			when Demographic='Asian or Native Hawaiian or Pacific Islander' and Demographic2='0-12' then asian_pi_0_12
+			when Demographic='Asian or Native Hawaiian or Pacific Islander' and Demographic2='13-17' then asian_pi_13_17
+			when Demographic='Asian or Native Hawaiian or Pacific Islander' and Demographic2='18-24' then asian_pi_18_24
+			when Demographic='Asian or Native Hawaiian or Pacific Islander' and Demographic2='25-49' then asian_pi_25_49
+			when Demographic='Asian or Native Hawaiian or Pacific Islander' and Demographic2='50-64' then asian_pi_50_64
+			when Demographic='Asian or Native Hawaiian or Pacific Islander' and Demographic2='65+' then ai_an_65GE
+			when Demographic='Black or African American' and Demographic2='0-12' then black_0_12
+			when Demographic='Black or African American' and Demographic2='13-17' then black_13_17
+			when Demographic='Black or African American' and Demographic2='18-24' then black_18_24
+			when Demographic='Black or African American' and Demographic2='25-49' then black_25_49
+			when Demographic='Black or African American' and Demographic2='50-64' then black_50_64
+			when Demographic='Black or African American' and Demographic2='65+' then black_65GE
+			when Demographic='Multi-Race' and Demographic2='0-12' then multi_race_0_12
+			when Demographic='Multi-Race' and Demographic2='13-17' then multi_race_13_17
+			when Demographic='Multi-Race' and Demographic2='18-24' then multi_race_18_24
+			when Demographic='Multi-Race' and Demographic2='25-49' then multi_race_25_49
+			when Demographic='Multi-Race' and Demographic2='50-64' then multi_race_50_64
+			when Demographic='Multi-Race' and Demographic2='65+' then multi_race_65GE
+			when Demographic='White' and Demographic2='0-12' then white_0_12
+			when Demographic='White' and Demographic2='13-17' then white_13_17
+			when Demographic='White' and Demographic2='18-24' then white_18_24
+			when Demographic='White' and Demographic2='25-49' then white_25_49
+			when Demographic='White' and Demographic2='50-64' then white_50_64
+			when Demographic='White' and Demographic2='65+' then white_65GE
+	end as Population_County
 from rates_RaceXAge
 order by Year desc, County_substr, Disease, Demographic, Demographic2;
 
+/*data rates_RaceXAge;*/
+/*set rates_RaceXAge;*/
+/*format County_Annual_Incidence 10.1;*/
+/*County_Annual_Incidence=County_Annual_Cases/Population_County*100000;*/
+/*County_Annual_Cases_Sup=0;*/
+/*State_Annual_Cases_Sup=0;*/
+/*format Suppression $3.;*/
+/*Suppression='No';*/
+/*if Demographic NE 'Missing/Unknown' and Demographic NE 'Other' and Demographic2 NE 'Missing/Unknown'*/
+/*		and State_Annual_Incidence=. then do;*/
+/*	County_Annual_Cases_Sup=County_Annual_Cases;*/
+/*	County_Annual_Cases=0;*/
+/*	State_Annual_Cases_Sup=State_Annual_Cases;*/
+/*	State_Annual_Cases=0;*/
+/*	Suppression='Yes';	end;*/
+/*if Demographic NE 'Missing/Unknown' and Demographic NE 'Other' and Demographic2 NE 'Missing/Unknown'*/
+/*		and County_Annual_Incidence=. then do;*/
+/*	County_Annual_Cases_Sup=County_Annual_Cases;*/
+/*	County_Annual_Cases=0;*/
+/*	Suppression='Yes';	end;*/
+/*Demographic_Group='Race by Age Group';*/
+/*run;*/
+
+%suppress_cases_mult(rates_RaceXAge);
+%secondary_suppress_mult(rates_RaceXAge);
+
 data rates_RaceXAge;
 set rates_RaceXAge;
-if Demographic NE '' and left(Demographic2) NE '.' and State_Annual_Incidence=. then do;
-	State_Annual_Cases=.; County_Annual_Cases=.; end;
-if Demographic NE '' and left(Demographic2) NE '.' and County_Annual_Incidence=. then County_Annual_Cases=.;
-DemographicGroup='Race by Age Group';
+Demographic_Group='Race by Age Group';
 run;
 
 /*proc export data=rates_RaceXAge*/
@@ -2255,24 +2327,25 @@ create table rates_HISPANICXAge as
 select
 	Year, County_substr, Disease, Disease_Group, Demographic, Demographic2, County_Annual_Cases, State_Annual_Cases,
 	case
-			when Demographic='Hispanic' and Demographic2='0-12' then State_Annual_Cases/hisp_0_12*100000
-			when Demographic='Hispanic' and Demographic2='13-17' then State_Annual_Cases/hisp_13_17*100000
-			when Demographic='Hispanic' and Demographic2='18-24' then State_Annual_Cases/hisp_18_24*100000
-			when Demographic='Hispanic' and Demographic2='25-49' then State_Annual_Cases/hisp_25_49*100000
-			when Demographic='Hispanic' and Demographic2='50-64' then State_Annual_Cases/hisp_50_64*100000
-			when Demographic='Hispanic' and Demographic2='65+' then State_Annual_Cases/hisp_65GE*100000
-			when Demographic='Non-Hispanic' and Demographic2='0-12' then State_Annual_Cases/nonhisp_0_12*100000
-			when Demographic='Non-Hispanic' and Demographic2='13-17' then State_Annual_Cases/nonhisp_13_17*100000
-			when Demographic='Non-Hispanic' and Demographic2='18-24' then State_Annual_Cases/nonhisp_18_24*100000
-			when Demographic='Non-Hispanic' and Demographic2='25-49' then State_Annual_Cases/nonhisp_25_49*100000
-			when Demographic='Non-Hispanic' and Demographic2='50-64' then State_Annual_Cases/nonhisp_50_64*100000
-			when Demographic='Non-Hispanic' and Demographic2='65+' then State_Annual_Cases/nonhisp_65GE*100000
-		end as State_Annual_Incidence
+			when Demographic='Hispanic' and Demographic2='0-12' then hisp_0_12
+			when Demographic='Hispanic' and Demographic2='13-17' then hisp_13_17
+			when Demographic='Hispanic' and Demographic2='18-24' then hisp_18_24
+			when Demographic='Hispanic' and Demographic2='25-49' then hisp_25_49
+			when Demographic='Hispanic' and Demographic2='50-64' then hisp_50_64
+			when Demographic='Hispanic' and Demographic2='65+' then hisp_65GE
+			when Demographic='Non-Hispanic' and Demographic2='0-12' then nonhisp_0_12
+			when Demographic='Non-Hispanic' and Demographic2='13-17' then nonhisp_13_17
+			when Demographic='Non-Hispanic' and Demographic2='18-24' then nonhisp_18_24
+			when Demographic='Non-Hispanic' and Demographic2='25-49' then nonhisp_25_49
+			when Demographic='Non-Hispanic' and Demographic2='50-64' then nonhisp_50_64
+			when Demographic='Non-Hispanic' and Demographic2='65+' then nonhisp_65GE
+		end as Population_State
 from rates_HISPANICXAge;
 
 proc sql;
 create table rates_HISPANICXAge as
-select a.*, b.*
+select a.*, b.*,
+State_Annual_Cases/Population_State*100000 as State_Annual_Incidence format=10.1
 from rates_HISPANICXAge a left join demo_county_pops_sup b
 	on a.Year=b.year and a.County_substr=b.COUNTY;
 
@@ -2280,30 +2353,51 @@ proc sql;
 create table rates_HISPANICXAge as
 select
 	Year, County_substr, Disease, Disease_Group, Demographic, Demographic2,
-	State_Annual_Cases, State_Annual_Incidence, County_Annual_Cases,
+	State_Annual_Cases, State_Annual_Incidence, County_Annual_Cases, Population_State,
 	case
-			when Demographic='Hispanic' and Demographic2='0-12' then County_Annual_Cases/hisp_0_12*100000
-			when Demographic='Hispanic' and Demographic2='13-17' then County_Annual_Cases/hisp_13_17*100000
-			when Demographic='Hispanic' and Demographic2='18-24' then County_Annual_Cases/hisp_18_24*100000
-			when Demographic='Hispanic' and Demographic2='25-49' then County_Annual_Cases/hisp_25_49*100000
-			when Demographic='Hispanic' and Demographic2='50-64' then County_Annual_Cases/hisp_50_64*100000
-			when Demographic='Hispanic' and Demographic2='65+' then County_Annual_Cases/hisp_65GE*100000
-			when Demographic='Non-Hispanic' and Demographic2='0-12' then County_Annual_Cases/nonhisp_0_12*100000
-			when Demographic='Non-Hispanic' and Demographic2='13-17' then County_Annual_Cases/nonhisp_13_17*100000
-			when Demographic='Non-Hispanic' and Demographic2='18-24' then County_Annual_Cases/nonhisp_18_24*100000
-			when Demographic='Non-Hispanic' and Demographic2='25-49' then County_Annual_Cases/nonhisp_25_49*100000
-			when Demographic='Non-Hispanic' and Demographic2='50-64' then County_Annual_Cases/nonhisp_50_64*100000
-			when Demographic='Non-Hispanic' and Demographic2='65+' then County_Annual_Cases/nonhisp_65GE*100000
-	end as County_Annual_Incidence
+			when Demographic='Hispanic' and Demographic2='0-12' then hisp_0_12
+			when Demographic='Hispanic' and Demographic2='13-17' then hisp_13_17
+			when Demographic='Hispanic' and Demographic2='18-24' then hisp_18_24
+			when Demographic='Hispanic' and Demographic2='25-49' then hisp_25_49
+			when Demographic='Hispanic' and Demographic2='50-64' then hisp_50_64
+			when Demographic='Hispanic' and Demographic2='65+' then hisp_65GE
+			when Demographic='Non-Hispanic' and Demographic2='0-12' then nonhisp_0_12
+			when Demographic='Non-Hispanic' and Demographic2='13-17' then nonhisp_13_17
+			when Demographic='Non-Hispanic' and Demographic2='18-24' then nonhisp_18_24
+			when Demographic='Non-Hispanic' and Demographic2='25-49' then nonhisp_25_49
+			when Demographic='Non-Hispanic' and Demographic2='50-64' then nonhisp_50_64
+			when Demographic='Non-Hispanic' and Demographic2='65+' then nonhisp_65GE
+	end as Population_County
 from rates_HISPANICXAge
 order by Year desc, County_substr, Disease, Demographic, Demographic2;
 
+/*data rates_HISPANICXAge;*/
+/*set rates_HISPANICXAge;*/
+/*format County_Annual_Incidence 10.1;*/
+/*County_Annual_Incidence=County_Annual_Cases/Population_County*100000;*/
+/*County_Annual_Cases_Sup=0;*/
+/*State_Annual_Cases_Sup=0;*/
+/*format Suppression $3.;*/
+/*Suppression='No';*/
+/*if Demographic NE 'Missing/Unknown' and Demographic2 NE 'Missing/Unknown' and State_Annual_Incidence=. then do;*/
+/*	County_Annual_Cases_Sup=County_Annual_Cases;*/
+/*	County_Annual_Cases=0;*/
+/*	State_Annual_Cases_Sup=State_Annual_Cases;*/
+/*	State_Annual_Cases=0;*/
+/*	Suppression='Yes';	end;*/
+/*if Demographic NE 'Missing/Unknown' and Demographic2 NE 'Missing/Unknown' and County_Annual_Incidence=. then do;*/
+/*	County_Annual_Cases_Sup=County_Annual_Cases;*/
+/*	County_Annual_Cases=0;*/
+/*	Suppression='Yes';	end;*/
+/*Demographic_Group='Ethnicity by Age Group';*/
+/*run;*/
+
+%suppress_cases_mult(rates_HISPANICXAge);
+%secondary_suppress_mult (rates_HISPANICXAge);
+
 data rates_HISPANICXAge;
 set rates_HISPANICXAge;
-if Demographic NE '' and Demographic NE 'Missing/Unknown' and left(Demographic2) NE '.' and State_Annual_Incidence=. then do;
-	State_Annual_Cases=.; County_Annual_Cases=.; end;
-if Demographic NE '' and Demographic NE 'Missing/Unknown' and left(Demographic2) NE '.' and County_Annual_Incidence=. then County_Annual_Cases=.;
-DemographicGroup='Ethnicity by Age';
+Demographic_Group='Ethnicity by Age Group';
 run;
 
 
@@ -2346,45 +2440,46 @@ create table rates_RaceXHISPANIC as
 select
 	Year, County_substr, Disease, Disease_Group, Demographic, Demographic2, County_Annual_Cases, State_Annual_Cases,
 	case
-			when Demographic='American Indian Alaskan Native' and Demographic2='Hispanic' then State_Annual_Cases/hisp_ai_an*100000
-			when Demographic='American Indian Alaskan Native' and Demographic2='Non-Hispanic' then State_Annual_Cases/nonhisp_ai_an*100000
-			when Demographic='Asian or Native Hawaiian or Pacific Islander' and Demographic2='Hispanic' then State_Annual_Cases/hisp_asian_pi*100000
-			when Demographic='Asian or Native Hawaiian or Pacific Islander' and Demographic2='Non-Hispanic' then State_Annual_Cases/nonhisp_asian_pi*100000
-			when Demographic='Black or African American' and Demographic2='Hispanic' then State_Annual_Cases/hisp_black*100000
-			when Demographic='Black or African American' and Demographic2='Non-Hispanic' then State_Annual_Cases/nonhisp_black*100000
-			when Demographic='Multi-Race' and Demographic2='Hispanic' then State_Annual_Cases/hisp_multi_race*100000
-			when Demographic='Multi-Race' and Demographic2='Non-Hispanic' then State_Annual_Cases/nonhisp_multi_race*100000
-			when Demographic='White' and Demographic2='Hispanic' then State_Annual_Cases/hisp_white*100000
-			when Demographic='White' and Demographic2='Non-Hispanic' then State_Annual_Cases/nonhisp_white*100000
+			when Demographic='American Indian Alaskan Native' and Demographic2='Hispanic' then hisp_ai_an
+			when Demographic='American Indian Alaskan Native' and Demographic2='Non-Hispanic' then nonhisp_ai_an
+			when Demographic='Asian or Native Hawaiian or Pacific Islander' and Demographic2='Hispanic' then hisp_asian_pi
+			when Demographic='Asian or Native Hawaiian or Pacific Islander' and Demographic2='Non-Hispanic' then nonhisp_asian_pi
+			when Demographic='Black or African American' and Demographic2='Hispanic' then hisp_black
+			when Demographic='Black or African American' and Demographic2='Non-Hispanic' then nonhisp_black
+			when Demographic='Multi-Race' and Demographic2='Hispanic' then hisp_multi_race
+			when Demographic='Multi-Race' and Demographic2='Non-Hispanic' then nonhisp_multi_race
+			when Demographic='White' and Demographic2='Hispanic' then hisp_white
+			when Demographic='White' and Demographic2='Non-Hispanic' then nonhisp_white
 
-			when Demographic='American Indian Alaskan Native' and Demographic2='Hispanic' and Disease='Influenza, adult death' then State_Annual_Cases/hisp_ai_an_age_18GE*100000
-			when Demographic='American Indian Alaskan Native' and Demographic2='Non-Hispanic' and Disease='Influenza, adult death' then State_Annual_Cases/nonhisp_ai_an_age_18GE*100000
-			when Demographic='Asian or Native Hawaiian or Pacific Islander' and Demographic2='Hispanic' and Disease='Influenza, adult death' then State_Annual_Cases/hisp_asian_pi_age_18GE*100000
-			when Demographic='Asian or Native Hawaiian or Pacific Islander' and Demographic2='Non-Hispanic' and Disease='Influenza, adult death' then State_Annual_Cases/nonhisp_asian_pi_age_18GE*100000
-			when Demographic='Black or African American' and Demographic2='Hispanic' and Disease='Influenza, adult death' then State_Annual_Cases/hisp_black_age_18GE*100000
-			when Demographic='Black or African American' and Demographic2='Non-Hispanic' and Disease='Influenza, adult death' then State_Annual_Cases/nonhisp_black_age_18GE*100000
-			when Demographic='Multi-Race' and Demographic2='Hispanic' and Disease='Influenza, adult death' then State_Annual_Cases/hisp_multi_race_age_18GE*100000
-			when Demographic='Multi-Race' and Demographic2='Non-Hispanic' and Disease='Influenza, adult death' then State_Annual_Cases/nonhisp_multi_race_age_18GE*100000
-			when Demographic='White' and Demographic2='Hispanic' and Disease='Influenza, adult death' then State_Annual_Cases/hisp_white_age_18GE*100000
-			when Demographic='White' and Demographic2='Non-Hispanic' and Disease='Influenza, adult death' then State_Annual_Cases/nonhisp_white_age_18GE*100000
+			when Demographic='American Indian Alaskan Native' and Demographic2='Hispanic' and Disease='Influenza, adult death' then hisp_ai_an_age_18GE
+			when Demographic='American Indian Alaskan Native' and Demographic2='Non-Hispanic' and Disease='Influenza, adult death' then nonhisp_ai_an_age_18GE
+			when Demographic='Asian or Native Hawaiian or Pacific Islander' and Demographic2='Hispanic' and Disease='Influenza, adult death' then hisp_asian_pi_age_18GE
+			when Demographic='Asian or Native Hawaiian or Pacific Islander' and Demographic2='Non-Hispanic' and Disease='Influenza, adult death' then nonhisp_asian_pi_age_18GE
+			when Demographic='Black or African American' and Demographic2='Hispanic' and Disease='Influenza, adult death' then hisp_black_age_18GE
+			when Demographic='Black or African American' and Demographic2='Non-Hispanic' and Disease='Influenza, adult death' then nonhisp_black_age_18GE
+			when Demographic='Multi-Race' and Demographic2='Hispanic' and Disease='Influenza, adult death' then hisp_multi_race_age_18GE
+			when Demographic='Multi-Race' and Demographic2='Non-Hispanic' and Disease='Influenza, adult death' then nonhisp_multi_race_age_18GE
+			when Demographic='White' and Demographic2='Hispanic' and Disease='Influenza, adult death' then hisp_white_age_18GE
+			when Demographic='White' and Demographic2='Non-Hispanic' and Disease='Influenza, adult death' then nonhisp_white_age_18GE
 
-			when Demographic='American Indian Alaskan Native' and Demographic2='Hispanic' and Disease='Influenza, pediatric death' then State_Annual_Cases/hisp_ai_an_age_0_17*100000
-			when Demographic='American Indian Alaskan Native' and Demographic2='Non-Hispanic' and Disease='Influenza, pediatric death' then State_Annual_Cases/nonhisp_ai_an_age_0_17*100000
-			when Demographic='Asian or Native Hawaiian or Pacific Islander' and Demographic2='Hispanic' and Disease='Influenza, pediatric death' then State_Annual_Cases/hisp_asian_pi_age_0_17*100000
-			when Demographic='Asian or Native Hawaiian or Pacific Islander' and Demographic2='Non-Hispanic' and Disease='Influenza, pediatric death' then State_Annual_Cases/nonhisp_asian_pi_age_0_17*100000
-			when Demographic='Black or African American' and Demographic2='Hispanic' and Disease='Influenza, pediatric death' then State_Annual_Cases/hisp_black_age_0_17*100000
-			when Demographic='Black or African American' and Demographic2='Non-Hispanic' and Disease='Influenza, pediatric death' then State_Annual_Cases/nonhisp_black_age_0_17*100000
-			when Demographic='Multi-Race' and Demographic2='Hispanic' and Disease='Influenza, pediatric death' then State_Annual_Cases/hisp_multi_race_age_0_17*100000
-			when Demographic='Multi-Race' and Demographic2='Non-Hispanic' and Disease='Influenza, pediatric death' then State_Annual_Cases/nonhisp_multi_race_age_0_17*100000
-			when Demographic='White' and Demographic2='Hispanic' and Disease='Influenza, pediatric death' then State_Annual_Cases/hisp_white_age_0_17*100000
-			when Demographic='White' and Demographic2='Non-Hispanic' and Disease='Influenza, pediatric death' then State_Annual_Cases/nonhisp_white_age_0_17*100000
+			when Demographic='American Indian Alaskan Native' and Demographic2='Hispanic' and Disease='Influenza, pediatric death' then hisp_ai_an_age_0_17
+			when Demographic='American Indian Alaskan Native' and Demographic2='Non-Hispanic' and Disease='Influenza, pediatric death' then nonhisp_ai_an_age_0_17
+			when Demographic='Asian or Native Hawaiian or Pacific Islander' and Demographic2='Hispanic' and Disease='Influenza, pediatric death' then hisp_asian_pi_age_0_17
+			when Demographic='Asian or Native Hawaiian or Pacific Islander' and Demographic2='Non-Hispanic' and Disease='Influenza, pediatric death' then nonhisp_asian_pi_age_0_17
+			when Demographic='Black or African American' and Demographic2='Hispanic' and Disease='Influenza, pediatric death' then hisp_black_age_0_17
+			when Demographic='Black or African American' and Demographic2='Non-Hispanic' and Disease='Influenza, pediatric death' then nonhisp_black_age_0_17
+			when Demographic='Multi-Race' and Demographic2='Hispanic' and Disease='Influenza, pediatric death' then hisp_multi_race_age_0_17
+			when Demographic='Multi-Race' and Demographic2='Non-Hispanic' and Disease='Influenza, pediatric death' then nonhisp_multi_race_age_0_17
+			when Demographic='White' and Demographic2='Hispanic' and Disease='Influenza, pediatric death' then hisp_white_age_0_17
+			when Demographic='White' and Demographic2='Non-Hispanic' and Disease='Influenza, pediatric death' then nonhisp_white_age_0_17
 
-		end as State_Annual_Incidence
+		end as Population_State
 from rates_RaceXHISPANIC;
 
 proc sql;
 create table rates_RaceXHISPANIC as
-select a.*, b.*
+select a.*, b.*,
+State_Annual_Cases/Population_State*100000 as State_Annual_Incidence format=10.1
 from rates_RaceXHISPANIC a left join demo_county_pops_sup b
 	on a.Year=b.year and a.County_substr=b.COUNTY;
 
@@ -2392,57 +2487,80 @@ proc sql;
 create table rates_RaceXHISPANIC as
 select
 	Year, County_substr, Disease, Disease_Group, Demographic, Demographic2,
-	State_Annual_Cases, State_Annual_Incidence, County_Annual_Cases,
+	State_Annual_Cases, State_Annual_Incidence, County_Annual_Cases, Population_State,
 	case
-			when Demographic='American Indian Alaskan Native' and Demographic2='Hispanic' then County_Annual_Cases/hisp_ai_an*100000
-			when Demographic='American Indian Alaskan Native' and Demographic2='Non-Hispanic' then County_Annual_Cases/nonhisp_ai_an*100000
-			when Demographic='Asian or Native Hawaiian or Pacific Islander' and Demographic2='Hispanic' then County_Annual_Cases/hisp_asian_pi*100000
-			when Demographic='Asian or Native Hawaiian or Pacific Islander' and Demographic2='Non-Hispanic' then County_Annual_Cases/nonhisp_asian_pi*100000
-			when Demographic='Black or African American' and Demographic2='Hispanic' then County_Annual_Cases/hisp_black*100000
-			when Demographic='Black or African American' and Demographic2='Non-Hispanic' then County_Annual_Cases/nonhisp_black*100000
-			when Demographic='Multi-Race' and Demographic2='Hispanic' then County_Annual_Cases/hisp_multi_race*100000
-			when Demographic='Multi-Race' and Demographic2='Non-Hispanic' then County_Annual_Cases/nonhisp_multi_race*100000
-			when Demographic='White' and Demographic2='Hispanic' then County_Annual_Cases/hisp_white*100000
-			when Demographic='White' and Demographic2='Non-Hispanic' then County_Annual_Cases/nonhisp_white*100000
+			when Demographic='American Indian Alaskan Native' and Demographic2='Hispanic' then hisp_ai_an
+			when Demographic='American Indian Alaskan Native' and Demographic2='Non-Hispanic' then nonhisp_ai_an
+			when Demographic='Asian or Native Hawaiian or Pacific Islander' and Demographic2='Hispanic' then hisp_asian_pi
+			when Demographic='Asian or Native Hawaiian or Pacific Islander' and Demographic2='Non-Hispanic' then nonhisp_asian_pi
+			when Demographic='Black or African American' and Demographic2='Hispanic' then hisp_black
+			when Demographic='Black or African American' and Demographic2='Non-Hispanic' then nonhisp_black
+			when Demographic='Multi-Race' and Demographic2='Hispanic' then hisp_multi_race
+			when Demographic='Multi-Race' and Demographic2='Non-Hispanic' then nonhisp_multi_race
+			when Demographic='White' and Demographic2='Hispanic' then hisp_white
+			when Demographic='White' and Demographic2='Non-Hispanic' then nonhisp_white
 
-			when Demographic='American Indian Alaskan Native' and Demographic2='Hispanic' and Disease='Influenza, adult death' then County_Annual_Cases/hisp_ai_an_age_18GE*100000
-			when Demographic='American Indian Alaskan Native' and Demographic2='Non-Hispanic' and Disease='Influenza, adult death' then County_Annual_Cases/nonhisp_ai_an_age_18GE*100000
-			when Demographic='Asian or Native Hawaiian or Pacific Islander' and Demographic2='Hispanic' and Disease='Influenza, adult death' then County_Annual_Cases/hisp_asian_pi_age_18GE*100000
-			when Demographic='Asian or Native Hawaiian or Pacific Islander' and Demographic2='Non-Hispanic' and Disease='Influenza, adult death' then County_Annual_Cases/nonhisp_asian_pi_age_18GE*100000
-			when Demographic='Black or African American' and Demographic2='Hispanic' and Disease='Influenza, adult death' then County_Annual_Cases/hisp_black_age_18GE*100000
-			when Demographic='Black or African American' and Demographic2='Non-Hispanic' and Disease='Influenza, adult death' then County_Annual_Cases/nonhisp_black_age_18GE*100000
-			when Demographic='Multi-Race' and Demographic2='Hispanic' and Disease='Influenza, adult death' then County_Annual_Cases/hisp_multi_race_age_18GE*100000
-			when Demographic='Multi-Race' and Demographic2='Non-Hispanic' and Disease='Influenza, adult death' then County_Annual_Cases/nonhisp_multi_race_age_18GE*100000
-			when Demographic='White' and Demographic2='Hispanic' and Disease='Influenza, adult death' then County_Annual_Cases/hisp_white_age_18GE*100000
-			when Demographic='White' and Demographic2='Non-Hispanic' and Disease='Influenza, adult death' then County_Annual_Cases/nonhisp_white_age_18GE*100000
+			when Demographic='American Indian Alaskan Native' and Demographic2='Hispanic' and Disease='Influenza, adult death' then hisp_ai_an_age_18GE
+			when Demographic='American Indian Alaskan Native' and Demographic2='Non-Hispanic' and Disease='Influenza, adult death' then nonhisp_ai_an_age_18GE
+			when Demographic='Asian or Native Hawaiian or Pacific Islander' and Demographic2='Hispanic' and Disease='Influenza, adult death' then hisp_asian_pi_age_18GE
+			when Demographic='Asian or Native Hawaiian or Pacific Islander' and Demographic2='Non-Hispanic' and Disease='Influenza, adult death' then nonhisp_asian_pi_age_18GE
+			when Demographic='Black or African American' and Demographic2='Hispanic' and Disease='Influenza, adult death' then hisp_black_age_18GE
+			when Demographic='Black or African American' and Demographic2='Non-Hispanic' and Disease='Influenza, adult death' then nonhisp_black_age_18GE
+			when Demographic='Multi-Race' and Demographic2='Hispanic' and Disease='Influenza, adult death' then hisp_multi_race_age_18GE
+			when Demographic='Multi-Race' and Demographic2='Non-Hispanic' and Disease='Influenza, adult death' then nonhisp_multi_race_age_18GE
+			when Demographic='White' and Demographic2='Hispanic' and Disease='Influenza, adult death' then hisp_white_age_18GE
+			when Demographic='White' and Demographic2='Non-Hispanic' and Disease='Influenza, adult death' then nonhisp_white_age_18GE
 
-			when Demographic='American Indian Alaskan Native' and Demographic2='Hispanic' and Disease='Influenza, pediatric death' then County_Annual_Cases/hisp_ai_an_age_0_17*100000
-			when Demographic='American Indian Alaskan Native' and Demographic2='Non-Hispanic' and Disease='Influenza, pediatric death' then County_Annual_Cases/nonhisp_ai_an_age_0_17*100000
-			when Demographic='Asian or Native Hawaiian or Pacific Islander' and Demographic2='Hispanic' and Disease='Influenza, pediatric death' then County_Annual_Cases/hisp_asian_pi_age_0_17*100000
-			when Demographic='Asian or Native Hawaiian or Pacific Islander' and Demographic2='Non-Hispanic' and Disease='Influenza, pediatric death' then County_Annual_Cases/nonhisp_asian_pi_age_0_17*100000
-			when Demographic='Black or African American' and Demographic2='Hispanic' and Disease='Influenza, pediatric death' then County_Annual_Cases/hisp_black_age_0_17*100000
-			when Demographic='Black or African American' and Demographic2='Non-Hispanic' and Disease='Influenza, pediatric death' then County_Annual_Cases/nonhisp_black_age_0_17*100000
-			when Demographic='Multi-Race' and Demographic2='Hispanic' and Disease='Influenza, pediatric death' then County_Annual_Cases/hisp_multi_race_age_0_17*100000
-			when Demographic='Multi-Race' and Demographic2='Non-Hispanic' and Disease='Influenza, pediatric death' then County_Annual_Cases/nonhisp_multi_race_age_0_17*100000
-			when Demographic='White' and Demographic2='Hispanic' and Disease='Influenza, pediatric death' then County_Annual_Cases/hisp_white_age_0_17*100000
-			when Demographic='White' and Demographic2='Non-Hispanic' and Disease='Influenza, pediatric death' then County_Annual_Cases/nonhisp_white_age_0_17*100000
+			when Demographic='American Indian Alaskan Native' and Demographic2='Hispanic' and Disease='Influenza, pediatric death' then hisp_ai_an_age_0_17
+			when Demographic='American Indian Alaskan Native' and Demographic2='Non-Hispanic' and Disease='Influenza, pediatric death' then nonhisp_ai_an_age_0_17
+			when Demographic='Asian or Native Hawaiian or Pacific Islander' and Demographic2='Hispanic' and Disease='Influenza, pediatric death' then hisp_asian_pi_age_0_17
+			when Demographic='Asian or Native Hawaiian or Pacific Islander' and Demographic2='Non-Hispanic' and Disease='Influenza, pediatric death' then nonhisp_asian_pi_age_0_17
+			when Demographic='Black or African American' and Demographic2='Hispanic' and Disease='Influenza, pediatric death' then hisp_black_age_0_17
+			when Demographic='Black or African American' and Demographic2='Non-Hispanic' and Disease='Influenza, pediatric death' then nonhisp_black_age_0_17
+			when Demographic='Multi-Race' and Demographic2='Hispanic' and Disease='Influenza, pediatric death' then hisp_multi_race_age_0_17
+			when Demographic='Multi-Race' and Demographic2='Non-Hispanic' and Disease='Influenza, pediatric death' then nonhisp_multi_race_age_0_17
+			when Demographic='White' and Demographic2='Hispanic' and Disease='Influenza, pediatric death' then hisp_white_age_0_17
+			when Demographic='White' and Demographic2='Non-Hispanic' and Disease='Influenza, pediatric death' then nonhisp_white_age_0_17
 
-	end as County_Annual_Incidence
+	end as Population_County
 from rates_RaceXHISPANIC
 order by Year desc, County_substr, Disease, Demographic, Demographic2;
 
+/*data rates_RaceXHISPANIC;*/
+/*set rates_RaceXHISPANIC;*/
+/*format County_Annual_Incidence 10.1;*/
+/*County_Annual_Incidence=County_Annual_Cases/Population_County*100000;*/
+/*County_Annual_Cases_Sup=0;*/
+/*State_Annual_Cases_Sup=0;*/
+/*format Suppression $3.;*/
+/*Suppression='No';*/
+/*if Demographic NE 'Missing/Unknown' and Demographic NE 'Other' and Demographic2 NE 'Missing/Unknown'*/
+/*		and State_Annual_Incidence=. then do;*/
+/*	County_Annual_Cases_Sup=County_Annual_Cases;*/
+/*	County_Annual_Cases=0;*/
+/*	State_Annual_Cases_Sup=State_Annual_Cases;*/
+/*	State_Annual_Cases=0;*/
+/*	Suppression='Yes';	end;*/
+/*if Demographic NE 'Missing/Unknown' and Demographic NE 'Other' and Demographic2 NE 'Missing/Unknown'*/
+/*		and County_Annual_Incidence=. then do;*/
+/*	County_Annual_Cases_Sup=County_Annual_Cases;*/
+/*	County_Annual_Cases=0;*/
+/*	Suppression='Yes';	end;*/
+/*Demographic_Group='Race by Ethnicity';*/
+/*run;*/
+
+%suppress_cases_mult(rates_RaceXHISPANIC);
+%secondary_suppress_mult (rates_RaceXHISPANIC);
+
 data rates_RaceXHISPANIC;
 set rates_RaceXHISPANIC;
-if  Demographic NE '' and Demographic2 NE '' and Demographic2 NE 'Missing/Unknown' and State_Annual_Incidence=. then do;
-	State_Annual_Cases=.; County_Annual_Cases=.; end;
-if Demographic NE '' and Demographic2 NE '' and Demographic2 NE 'Missing/Unknown' and County_Annual_Incidence=. then County_Annual_Cases=.;
-DemographicGroup='Race by Ethnicity';
+Demographic_Group='Race by Ethnicity';
 run;
 
 
 /*Combine*/
 data demographic_multiple;
-format Demographic Demographic2 $45.;
+format Demographic Demographic2 Demographic_Group $45.;
 set rates_GENDERXAge rates_GENDERXRace rates_GENDERXHISPANIC rates_RaceXAge rates_HISPANICXAge rates_RaceXHISPANIC;
 run;
 
@@ -2455,35 +2573,30 @@ run;
 
 
 data demographic_all;
-format DemographicGroup Demographic Demographic2 $45.;
+format Demographic Demographic2 Demographic_Group $45.;
 set demographic_simple demographic_multiple;
 if Disease='Botulism - infant' or Disease='Hepatitis B - Perinatally Acquired' or Disease='Syphilis - Congenital Syphilis' then do;
 	County_Annual_Incidence=.; State_Annual_Incidence=.; end;
 run;
 
-/*Suppress perinatal rates*/
-/*proc contents data=demographic_all out=_DemoTableNames_;*/
-/*run;*/
-/**/
-/*proc sql noprint;*/
-/*select name into :IncidenceNames separated by ' ' from _DemoTableNames_ where name ? ('Inci');*/
-/*data Incidence;*/
-/*set demographic_all(keep=Disease &IncidenceNames);*/
-/*run;*/
-/**/
-/*data Incidence(drop=i);*/
-/*set Incidence;*/
-/*array x &IncidenceNames;*/
-/*do i=1 to dim(x);*/
-/*    if Disease='Botulism - infant' then x(i)=.;*/
-/*    else if Disease='Hepatitis B - Perinatally Acquired' then x(i)=.;*/
-/*    else if Disease='Syphilis - Congenital Syphilis' then x(i)=.;*/
-/*end;*/
-/*run;*/
-/**/
-/*data demographic_all;*/
-/*merge demographic_all(drop=&IncidenceNames) Incidence(drop=Disease);*/
-/*run;*/
+/*Add 'All Counties' option to Counties dropdown*/
+proc sort data=demographic_all out=AllCounties
+	(drop=County_substr County_Annual_Cases County_Annual_Cases_Sup County_Annual_Incidence
+		Population_County County_Annual_Cases_char) nodupkey ;
+by Year Disease Demographic_Group Demographic;
+run;
+data AllCounties;
+set AllCounties;
+County_substr='All Counties';
+County_Annual_Cases=State_Annual_Cases;
+County_Annual_Cases_Sup=0;
+Population_County=Population_State;
+County_Annual_Cases_char=put(State_Annual_Cases, 10.);
+run;
+
+data demographic_all;
+set demographic_all AllCounties;
+run;
 
 
 /*proc export data=demographic_all*/
