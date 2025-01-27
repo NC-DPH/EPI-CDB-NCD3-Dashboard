@@ -1,10 +1,9 @@
-
 # install package loader
 if (!require("pacman")) install.packages("pacman")
 
 # load necessary packages
 pacman::p_load(
-  dplyr,  lubridate, haven #to read SAS database
+  dplyr, rio, lubridate, haven #to read SAS database
 )
 
 # import datasets, and only selected columns so loads faster. may take up to 1 min for main case file. 
@@ -186,7 +185,7 @@ agg_weekly <- final_nostd %>%
 
 
 # aggregate for aberration dashboard
-p_load(epikit)
+pacman::p_load(epikit)
 selected_diseases <- c("Campylobacter infection (50)", "Cryptosporidiosis (56)", "Cyclosporiasis (63)", "E. coli - shiga toxin producing (53)", "Salmonellosis (38)", "Shigellosis (39)", "Vibrio infection (other than cholera and vulnificus) (55)", "Carbapenem-resistant Enterobacteriaceae (CRE)", "Pertussis (47)", "Streptococcal invasive infection, Group A (61)", "Dengue (7)", "Varicella")
 
 aberration_weekly <- final_nostd %>%
@@ -196,7 +195,10 @@ aberration_weekly <- final_nostd %>%
   group_by(Year, Disease, Week, age_cat, GENDER, HISPANIC, RACE1, County_substr) %>% 
   summarise(Cases = n())
 
-expanded_scaffold <- expand.grid(Disease = selected_diseases, Year = 2015:2024, Week = 1:53, Gender = c("Male", "Female", ""), County = County)
+# export
+export(aberration_weekly, "aberration_weekly.xlsx")
+
+expanded_scaffold <- expand.grid(Disease = selected_diseases, Year = 2015:2024, Hispanic = Hispanic, age_cat = age_cat, Week = 1:53, Gender = c("Male", "Female", ""), Cases = 0)
 age_cat = unique(aberration_weekly$age_cat)
 Hispanic = unique(aberration_weekly$HISPANIC)
 Race1 = unique(aberration_weekly$RACE1)
