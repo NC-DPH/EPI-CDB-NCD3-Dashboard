@@ -1,4 +1,4 @@
-																/*LAST MODIFIED DATE: 7-25-24*/
+																/*LAST MODIFIED DATE: 10-30-24*/
 													/*LAST MODIFIED BY: LINDA YELTON (LWY) linda.yelton@dhhs.nc.gov*/
 /*Purpose: Script in progres to create the Data Source for the North Carolina Disease Data Dashboard (NCD3) next update*/
 /*	Internal server: https://internaldashboards.ncdhhs.gov/#/site/DPH/projects/400*/
@@ -6,7 +6,7 @@
 
 
 /*Must have access to NCEDSS_SAS(Z:) - CBD denorm server to run this program*/
-libname denorm 'Z:\20240806'; /*This can be updated as needed to produce most recent counts; M. Hilton provides a new extract monthly*/
+libname denorm 'Z:\20241101'; /*This can be updated as needed to produce most recent counts; M. Hilton provides a new extract monthly*/
 options compress=yes;
 options nofmterr;
 
@@ -20,8 +20,8 @@ options nofmterr;
 libname tb 'T:\Tableau\SAS folders\SAS datasets\TB Program Data 2015 - 2023'; /*this will need to be refreshed as newer years of counts are needed*/
 
 /* HIV */
-proc import datafile='T:\Tableau\NCD3 2.0\SAS Datasets\HIV AIDS 2015-2023.xlsx' out=HIV_annual dbms=xlsx replace; run;
-proc import datafile='T:\Tableau\NCD3 2.0\SAS Datasets\HIV AIDS 2015-2024 by quarter_05092024_clean.xlsx' out=HIV_quarterly dbms=xlsx replace; run;
+/*proc import datafile='T:\Tableau\NCD3 2.0\SAS Datasets\HIV AIDS 2015-2023.xlsx' out=HIV_annual dbms=xlsx replace; run;*/
+proc import datafile='T:\Tableau\NCD3 2.0\SAS Datasets\HIV AIDS 2015-2024 by quarter_08222024_clean.xlsx' out=HIV_quarterly dbms=xlsx replace; run;
 
 
 /* Annual and Quarterly County population */
@@ -44,6 +44,11 @@ out=county_pops dbms=xlsx replace; run;
 
 proc import datafile='T:\Tableau\NCD3 2.0\Population Denominators\July 1 2023 Vintage Estimates\State Census Pop_15_23.xlsx'
 out=state_pops dbms=xlsx replace; run;
+
+
+/*Regions file*/
+proc import datafile='T:\Tableau\NCD3 2.0\NCD3 2.0 Output\Tableau Data Sources\County_Regions_NCALHD.xlsx' out=regions dbms=xlsx replace; run;
+
 
 /*proc sql;*/
 /*create table types as*/
@@ -69,7 +74,7 @@ out=state_pops dbms=xlsx replace; run;
 
 proc sql;
 create table CASE_COMBO as
-select s.*, a.State, b.RPTI_SOURCE_DT_SUBMITTED
+select s.*, /*a.State*/a.EVENT_STATE, b.RPTI_SOURCE_DT_SUBMITTED
 from DENORM.CASE 
 as s left join Denorm.CASE_PHI as a on s.case_id=a.case_id
 		left join Denorm.Admin_question_package_addl as b on s.case_id=b.case_id
@@ -85,7 +90,7 @@ quit;
 
 proc sql;
 create table CASE_COMBO_sub as
-select s.*, a.State, b.RPTI_SOURCE_DT_SUBMITTED
+select s.*, /*a.State*/a.EVENT_STATE, b.RPTI_SOURCE_DT_SUBMITTED
 from DENORM.CASE 
 as s left join Denorm.CASE_PHI as a on s.case_id=a.case_id
 		left join Denorm.Admin_question_package_addl as b on s.case_id=b.case_id
@@ -118,12 +123,12 @@ select OWNING_JD, TYPE, TYPE_DESC, CLASSIFICATION_CLASSIFICATION, CASE_ID,
 /*	    else 'datepart(CREATE_DT)'*/
 /*	    end as Reporting_Date_Type, */
 	year(calculated EVENT_DATE) as Year, month(calculated EVENT_DATE) as Month, QTR(calculated EVENT_DATE) as Quarter,
-	SYMPTOM_ONSET_DATE, DISEASE_ONSET_QUALIFIER, RPTI_SOURCE_DT_SUBMITTED, CREATE_DT, STATUS, STATE
+	SYMPTOM_ONSET_DATE, DISEASE_ONSET_QUALIFIER, RPTI_SOURCE_DT_SUBMITTED, CREATE_DT, STATUS, /*state*/EVENT_STATE
 from CASE_COMBO
 /*where calculated EVENT_DATE >= '01JAN2015'd and calculated EVENT_DATE <= '31DEC2023'd*/
 where calculated EVENT_DATE >= '01JAN2015'd and calculated EVENT_DATE <= "&EndDate"d
 	and STATUS = 'Closed'
-	and STATE in ('NC' ' ')
+	and /*state*/EVENT_STATE in ('NC' ' ')
 order by TYPE_DESC, YEAR, OWNING_JD;
 
 
@@ -132,7 +137,7 @@ order by TYPE_DESC, YEAR, OWNING_JD;
 
 proc sql;
 create table CASE_COMBO as
-select s.*, a.State, b.RPTI_SOURCE_DT_SUBMITTED
+select s.*, /*a.State*/a.EVENT_STATE, b.RPTI_SOURCE_DT_SUBMITTED
 from DENORM.CASE 
 as s left join Denorm.CASE_PHI as a on s.case_id=a.case_id
 		left join Denorm.Admin_question_package_addl as b on s.case_id=b.case_id
@@ -144,7 +149,7 @@ quit;
 /*Removed the REPORT_TO_CDC=”Yes” filter for Carbapenem-resistant Enterobacteriaceae*/
 proc sql;
 create table CASE_COMBO_sub as
-select s.*, a.State, b.RPTI_SOURCE_DT_SUBMITTED
+select s.*, /*a.State*/a.EVENT_STATE, b.RPTI_SOURCE_DT_SUBMITTED
 from DENORM.CASE 
 as s left join Denorm.CASE_PHI as a on s.case_id=a.case_id
                               left join Denorm.Admin_question_package_addl as b on s.case_id=b.case_id
@@ -170,11 +175,11 @@ select OWNING_JD, TYPE, TYPE_DESC, CLASSIFICATION_CLASSIFICATION, CASE_ID,
 	    else datepart(CREATE_DT)
 	    end as EVENT_DATE format=DATE9., 
 	year(calculated EVENT_DATE) as Year, month(calculated EVENT_DATE) as Month, QTR(calculated EVENT_DATE) as Quarter,
-	SYMPTOM_ONSET_DATE, DISEASE_ONSET_QUALIFIER, RPTI_SOURCE_DT_SUBMITTED, CREATE_DT, STATUS, STATE
+	SYMPTOM_ONSET_DATE, DISEASE_ONSET_QUALIFIER, RPTI_SOURCE_DT_SUBMITTED, CREATE_DT, STATUS, /*state*/EVENT_STATE
 from CASE_COMBO
 where calculated EVENT_DATE >= '01JAN2015'd and calculated EVENT_DATE <= "&EndDate"d
 	and STATUS = 'Closed'
-	and STATE in ('NC' ' ')
+	and /*state*/EVENT_STATE in ('NC' ' ')
 order by TYPE_DESC, YEAR, OWNING_JD;
 
 
@@ -184,14 +189,30 @@ order by TYPE_DESC, YEAR, OWNING_JD;
 
 proc sql;
 create table CASE_COMBO as
-select s.*, a.State, b.RPTI_SOURCE_DT_SUBMITTED
+select s.*, /*a.State*/a.EVENT_STATE, b.RPTI_SOURCE_DT_SUBMITTED
 from DENORM.CASE 
 as s left join Denorm.CASE_PHI as a on s.case_id=a.case_id
 		left join Denorm.Admin_question_package_addl as b on s.case_id=b.case_id
 where s.CLASSIFICATION_CLASSIFICATION in ("Confirmed", "Probable")
-	and s.type in ("HEPB_C", "HEPB_P", "HEPA", "HEPB_A", "HEPC", "HEPB_U", "HEPCC")
-	and s.REPORT_TO_CDC = 'Yes';
+	and s.type in ("HEPB_P", "HEPA", "HEPB_A", "HEPC", "HEPB_U", "HEPCC")
+	and s.REPORT_TO_CDC = 'Yes'
+	and s.STATUS = 'Closed';
 quit;
+
+proc sql;
+create table CASE_COMBO_sub as
+select s.*, /*a.State*/a.EVENT_STATE, b.RPTI_SOURCE_DT_SUBMITTED
+from DENORM.CASE 
+as s left join Denorm.CASE_PHI as a on s.case_id=a.case_id
+                              left join Denorm.Admin_question_package_addl as b on s.case_id=b.case_id
+where s.CLASSIFICATION_CLASSIFICATION in ("Confirmed", "Probable")
+	and s.type = "HEPB_C"
+	and s.STATUS in ("Closed", "Open");
+quit;
+
+data case_combo;
+set case_combo case_combo_sub;
+run;
 
 proc sql;
 create table Hep as
@@ -207,11 +228,10 @@ create table Hep as
 	    else datepart(CREATE_DT)
 	    end as EVENT_DATE format=DATE9., 
 	year(calculated EVENT_DATE) as Year, month(calculated EVENT_DATE) as Month, QTR(calculated EVENT_DATE) as Quarter,
-	SYMPTOM_ONSET_DATE, DISEASE_ONSET_QUALIFIER, RPTI_SOURCE_DT_SUBMITTED, CREATE_DT, STATUS, STATE
+	SYMPTOM_ONSET_DATE, DISEASE_ONSET_QUALIFIER, RPTI_SOURCE_DT_SUBMITTED, CREATE_DT, STATUS, /*state*/EVENT_STATE
 from CASE_COMBO
 where calculated EVENT_DATE >= '01JAN2015'd and calculated EVENT_DATE <= "&EndDate"d
-	and STATUS = 'Closed'
-	and STATE in ('NC' ' ')
+	and /*state*/EVENT_STATE in ('NC' ' ')
 order by TYPE_DESC, YEAR, OWNING_JD;
 
 
@@ -219,7 +239,7 @@ order by TYPE_DESC, YEAR, OWNING_JD;
 
 proc sql;
 create table CASE_COMBO as
-select s.*, a.State, b.RPTI_SOURCE_DT_SUBMITTED
+select s.*, /*a.State*/a.EVENT_STATE, b.RPTI_SOURCE_DT_SUBMITTED
 from DENORM.CASE 
 as s left join Denorm.CASE_PHI as a on s.case_id=a.case_id
 		left join Denorm.Admin_question_package_addl as b on s.case_id=b.case_id
@@ -231,7 +251,7 @@ quit;
 /*Removed the REPORT_TO_CDC=”Yes” filter for Influenza, adult death (18 years of age or more)*/
 proc sql;
 create table CASE_COMBO_sub as
-select s.*, a.State, b.RPTI_SOURCE_DT_SUBMITTED
+select s.*, /*a.State*/a.EVENT_STATE, b.RPTI_SOURCE_DT_SUBMITTED
 from DENORM.CASE 
 as s left join Denorm.CASE_PHI as a on s.case_id=a.case_id
                               left join Denorm.Admin_question_package_addl as b on s.case_id=b.case_id
@@ -257,11 +277,11 @@ select OWNING_JD, TYPE, TYPE_DESC, CLASSIFICATION_CLASSIFICATION, CASE_ID,
 	    else datepart(CREATE_DT)
 	    end as EVENT_DATE format=DATE9., 
 	year(calculated EVENT_DATE) as Year, month(calculated EVENT_DATE) as Month, QTR(calculated EVENT_DATE) as Quarter,
-	SYMPTOM_ONSET_DATE, DISEASE_ONSET_QUALIFIER, RPTI_SOURCE_DT_SUBMITTED, CREATE_DT, STATUS, STATE
+	SYMPTOM_ONSET_DATE, DISEASE_ONSET_QUALIFIER, RPTI_SOURCE_DT_SUBMITTED, CREATE_DT, STATUS, /*state*/EVENT_STATE
 from CASE_COMBO
 where calculated EVENT_DATE >= '01JAN2015'd and calculated EVENT_DATE <= "&EndDate"d
 	and STATUS = 'Closed'
-	and STATE in ('NC' ' ')
+	and /*state*/EVENT_STATE in ('NC' ' ')
 order by TYPE_DESC, YEAR, OWNING_JD;
 
 
@@ -396,6 +416,7 @@ run;
 data hiv1;
 length Disease $4;
 set HIV_quarterly;
+/*set HIV_annual;*/
 Disease='HIV';
 /*Reporting_Date_Type='Earliest Diagnosis Date';*/
 Disease_Group='Sexually Transmitted';
@@ -403,6 +424,12 @@ County_substr = propcase(OWNING_JD);
 Cases_County_Quarterly=Cases;
 where OWNING_JD ne "NC TOTAL";
 run;
+
+/*proc transpose data=hiv1*/
+/*out=hiv1(drop=_NAME_ rename=(col1=Cases_County_Annual  _LABEL_=Year_Char));*/
+/*var _2015 - _2023;*/
+/*by Disease OWNING_JD Disease_Group County_substr;*/
+/*run;*/
 
 proc iml;
 edit hiv1;
@@ -416,20 +443,17 @@ close hiv1;
 /*by Disease OWNING_JD Disease_Group County_substr /*Cases_County_Quarterly;*/
 /*run;*/
 /**/
-/*proc transpose data=hiv1/*(drop=Cases)*/
-/*out=hiv1(drop=_NAME_ rename=(col1=Cases_County_Annual  _LABEL_=Year_Char));*/
-/*var _2015 - _2023;*/
-/*by Disease OWNING_JD Disease_Group County_substr /*Cases_County_Quarterly;*/
-/*run;*/
 
 proc sql;
 create table hiv1 as
 select *,
-/*	input(Year_Char,4.) as Year,*/
+/*	input(Year_Char,4.) as Year*/
 	sum(Cases_County_Quarterly) as Cases_County_Annual
 from hiv1
 group by Year, County_substr
-order by Year desc, County_substr, Quarter;
+order by Year desc, County_substr
+	, Quarter
+;
 
 
 
@@ -438,7 +462,7 @@ order by Year desc, County_substr, Quarter;
 
 proc sql;
 create table CASE_COMBO as
-select s.*, a.State, b.RPTI_SOURCE_DT_SUBMITTED
+select s.*, /*a.State*/a.EVENT_STATE, b.RPTI_SOURCE_DT_SUBMITTED
 from DENORM.CASE 
 as s left join Denorm.CASE_PHI as a on s.case_id=a.case_id
 		left join Denorm.Admin_question_package_addl as b on s.case_id=b.case_id
@@ -450,7 +474,7 @@ quit;
 /*Removed the REPORT_TO_CDC=”Yes” filter for Acute flaccid myelitis, Pneumococcal meningitis, Vaccinia;*/
 proc sql;
 create table CASE_COMBO_sub as
-select s.*, a.State, b.RPTI_SOURCE_DT_SUBMITTED
+select s.*, /*a.State*/a.EVENT_STATE, b.RPTI_SOURCE_DT_SUBMITTED
 from DENORM.CASE 
 as s left join Denorm.CASE_PHI as a on s.case_id=a.case_id
 		left join Denorm.Admin_question_package_addl as b on s.case_id=b.case_id
@@ -476,11 +500,11 @@ select OWNING_JD, TYPE, TYPE_DESC, CLASSIFICATION_CLASSIFICATION, CASE_ID,
 	    else datepart(CREATE_DT)
 	    end as EVENT_DATE format=DATE9., 
 	year(calculated EVENT_DATE) as Year, month(calculated EVENT_DATE) as Month, QTR(calculated EVENT_DATE) as Quarter,
-	SYMPTOM_ONSET_DATE, DISEASE_ONSET_QUALIFIER, RPTI_SOURCE_DT_SUBMITTED, CREATE_DT, STATUS, STATE
+	SYMPTOM_ONSET_DATE, DISEASE_ONSET_QUALIFIER, RPTI_SOURCE_DT_SUBMITTED, CREATE_DT, STATUS, /*state*/EVENT_STATE
 from CASE_COMBO
 where calculated EVENT_DATE >= '01JAN2015'd and calculated EVENT_DATE <= "&EndDate"d
 	and STATUS = 'Closed'
-	and STATE in ('NC' ' ')
+	and /*state*/EVENT_STATE in ('NC' ' ')
 order by TYPE_DESC, YEAR, OWNING_JD;
 
 
@@ -490,7 +514,7 @@ order by TYPE_DESC, YEAR, OWNING_JD;
 
 proc sql;
 create table CASE_COMBO as
-select s.*, a.State, b.RPTI_SOURCE_DT_SUBMITTED
+select s.*, /*a.State*/a.EVENT_STATE, b.RPTI_SOURCE_DT_SUBMITTED
 from DENORM.CASE 
 as s left join Denorm.CASE_PHI as a on s.case_id=a.case_id
 		left join Denorm.Admin_question_package_addl as b on s.case_id=b.case_id
@@ -504,7 +528,7 @@ quit;
 /*Removed the REPORT_TO_CDC=”Yes” filter for Creutzfeldt-Jakob Disease*/
 proc sql;
 create table CASE_COMBO_sub as
-select s.*, a.State, b.RPTI_SOURCE_DT_SUBMITTED
+select s.*, /*a.State*/a.EVENT_STATE, b.RPTI_SOURCE_DT_SUBMITTED
 from DENORM.CASE 
 as s left join Denorm.CASE_PHI as a on s.case_id=a.case_id
 		left join Denorm.Admin_question_package_addl as b on s.case_id=b.case_id
@@ -530,11 +554,11 @@ select OWNING_JD, TYPE, TYPE_DESC, CLASSIFICATION_CLASSIFICATION, CASE_ID,
 	    else datepart(CREATE_DT)
 	    end as EVENT_DATE format=DATE9., 
 	year(calculated EVENT_DATE) as Year, month(calculated EVENT_DATE) as Month, QTR(calculated EVENT_DATE) as Quarter,
-	SYMPTOM_ONSET_DATE, DISEASE_ONSET_QUALIFIER, RPTI_SOURCE_DT_SUBMITTED, CREATE_DT, STATUS, STATE
+	SYMPTOM_ONSET_DATE, DISEASE_ONSET_QUALIFIER, RPTI_SOURCE_DT_SUBMITTED, CREATE_DT, STATUS, /*state*/EVENT_STATE
 from CASE_COMBO
 where calculated EVENT_DATE >= '01JAN2015'd and calculated EVENT_DATE <= "&EndDate"d
 	and STATUS = 'Closed'
-	and STATE in ('NC' ' ')
+	and /*state*/EVENT_STATE in ('NC' ' ')
 order by TYPE_DESC, YEAR, OWNING_JD;
 
 /*QA*/
@@ -617,7 +641,6 @@ proc sql;
 create table agg_annual as
 select
 	Year,  County_substr,
-/*	OWNING_JD label='County' format=$30. length=30,*/
 	Disease, /*Reporting_Date_Type,*/ Disease_Group,
 /*	sum(case when CLASSIFICATION_CLASSIFICATION='Confirmed' then 1 else 0 end) as Confirmed label='Confirmed Count',*/
 /*	sum(case when CLASSIFICATION_CLASSIFICATION='Probable' then 1 else 0 end) as Probable label='Probable Count',*/
@@ -681,15 +704,23 @@ run;
 
 proc sql;
 create table unique_table/*_a*/ as
-select unique_counties.*, unique_diseases.Disease, unique_years.* , unique_quarters.*
-from unique_counties cross join unique_diseases cross join unique_years cross join unique_quarters;
+select unique_counties.*, unique_diseases.Disease, unique_years.* 
+	, unique_quarters.*
+from unique_counties cross join unique_diseases cross join unique_years
+	cross join unique_quarters
+;
 
 proc sql;
 create table agg_quarter as
-select coalesce(a.Year,b.Year) as Year, coalesce(a.Quarter,b.Quarter) as Quarter, coalesce(a.Disease,b.Disease) as Disease,
-	coalesce(a.County_substr,b.COUNTY) as County_substr, a.*
-from agg_quarter a full join unique_table/*_a*/ b
-	on a.year=b.year and a.Quarter=b.Quarter and a.Disease=b.Disease and a.County_substr=b.COUNTY;
+/*create table agg_annual as*/
+select coalesce(a.Year,b.Year) as Year, coalescec(a.Disease,b.Disease) as Disease, a.Disease_Group,
+	coalescec(a.County_substr,b.COUNTY) as County_substr/*, a.**/
+	, a.Cases_County_Quarterly, coalesce(a.Quarter,b.Quarter) as Quarter
+from agg_quarter a full join unique_table b
+/*from agg_annual a full join unique_table b*/
+	on a.year=b.year and a.Disease=b.Disease and a.County_substr=b.COUNTY
+	and a.Quarter=b.Quarter
+	;
 
 proc sql;
 create table case_agg as
@@ -697,7 +728,7 @@ select coalesce(a.Year,b.Year) as Year,
 	coalesce(a.County_substr,b.County_substr) as County_substr,
 	coalesce(a.Disease,b.Disease) as Disease, 
 	coalesce(a.Disease_Group,b.Disease_Group) as Disease_Group,
-	a.*, b.*
+	a.Cases_County_Annual, b.Quarter, b.Cases_County_Quarterly
 from agg_annual a full join agg_quarter b
 on a.Year=b.Year and a.County_substr=b.County_substr and a.Disease=b.Disease
 order by Year desc, County_substr, Disease;
@@ -735,6 +766,7 @@ create table case_rates as
 select coalesce(a.Year,b.year) as Year, coalesce(a.County_substr,b.COUNTY) as County_substr, a.*, b.*
 /*from cases a left join county_pops b*/
 from case_agg a left join county_pops b
+/*from agg_annual a left join county_pops b*/
 	on a.Year=b.year and a.County_substr=b.COUNTY;
 
 data case_rates (keep=Year County_substr Disease Disease_Group Cases_County_Annual county_pop_adjusted
@@ -754,10 +786,10 @@ run;
 data case_rates;
 set case_rates;
 if missing(Cases_County_Annual) then Cases_County_Annual=0;
-if missing(Cases_County_Quarterly) then Cases_County_Quarterly=0;
 County_Incidence_100k=Cases_County_Annual/county_pop_adjusted*100000;
-County_Incidence_100k_Quarterly=Cases_County_Quarterly/county_pop_adjusted*100000;
 format County_Incidence_100k 8.1;
+if missing(Cases_County_Quarterly) then Cases_County_Quarterly=0;
+County_Incidence_100k_Quarterly=Cases_County_Quarterly/county_pop_adjusted*100000;
 format County_Incidence_100k_Quarterly 8.1;
 run;
 
@@ -816,10 +848,13 @@ from state_rates_annual a natural join state_rates_quarter b;
 
 proc sql;
 create table case_rates as
-select coalesce(a.Year,b.year) as Year, coalesce(a.Quarter,b.Quarter) as Quarter, coalesce(a.Disease,b.Disease) as Disease,
-	a.*, b.Cases_State_Annual, b.Cases_State_Quarterly
+select coalesce(a.Year,b.year) as Year, coalesce(a.Disease,b.Disease) as Disease, a.*, b.Cases_State_Annual
+	, coalesce(a.Quarter,b.Quarter) as Quarter, b.Cases_State_Quarterly
 from case_rates a full join state_rates b
-	on a.year=b.year and a.Quarter=b.Quarter and a.Disease=b.Disease;
+/*from case_rates a full join state_rates_annual b*/
+	on a.year=b.year and a.Disease=b.Disease
+		and a.Quarter=b.Quarter
+;
 
 proc sql;
 create table case_rates as
@@ -827,17 +862,22 @@ select a.*, b.*
 from case_rates a left join state_pops b
 	on a.Year=b.year;
 
+proc sql;
+create table case_rates as
+select a.*, b.Region
+from case_rates a left join regions b
+	on a.County_substr=b.County;
+
 /*Finalize*/
 
-data case_rates_final (keep=Year Disease Disease_Group County_substr Cases_County_Annual
+data case_rates_final (keep=Year Disease Disease_Group County_substr Cases_County_Annual Region
 	county_pop_adjusted County_Incidence_100k Cases_State_Annual state_pop_adjusted State_Incidence_100k
-	Quarter Cases_County_Quarterly County_Incidence_100k_Quarterly Cases_State_Quarterly State_Incidence_100k_Quarterly); 
+	Quarter Cases_County_Quarterly County_Incidence_100k_Quarterly Cases_State_Quarterly State_Incidence_100k_Quarterly
+	); 
 set case_rates;
 where Year <=2024;
-if (Year=2024 and Quarter=3) or (Year=2024 and Quarter=4) then delete;
-if Year=2024 and Quarter=2 and Disease='HIV' then delete;
+if (Year=2024 and Quarter=4) then delete;
 if missing(Cases_State_Annual) then Cases_State_Annual=0;
-/*	else Cases_State_Annual=Cases_State_Annual;*/
 /*if Disease='Influenza, pediatric death' then state_pop_adjusted=age_0_17;*/
 /*	else if Disease='Influenza, adult death' then state_pop_adjusted=age_18GE;*/
 if Disease='Influenza, pediatric death' then state_pop_adjusted=age_0_12+age_13_17;
@@ -863,34 +903,43 @@ if Disease='Botulism - infant' then do;
 		State_Incidence_100k_Quarterly=.;
 		end;
 	else if Disease='TB' then do;
+		County_Incidence_100k=round(County_Incidence_100k, .1);
+		State_Incidence_100k=round(Cases_State_Annual/state_pop_adjusted*100000, .1);
 		Cases_County_Quarterly=.;
 		Cases_State_Quarterly=.;
-		County_Incidence_100k=round(County_Incidence_100k, .1);
 		County_Incidence_100k_Quarterly=.;
-		State_Incidence_100k=round(Cases_State_Annual/state_pop_adjusted*100000, .1);
 		State_Incidence_100k_Quarterly=.;
 		end;
 	else do;
 		County_Incidence_100k=round(County_Incidence_100k, .1);
-		County_Incidence_100k_Quarterly=round(County_Incidence_100k_Quarterly, .1);
 		State_Incidence_100k=round(Cases_State_Annual/state_pop_adjusted*100000, .1);
+		County_Incidence_100k_Quarterly=round(County_Incidence_100k_Quarterly, .1);
 		State_Incidence_100k_Quarterly=round(Cases_State_Quarterly/state_pop_adjusted*100000, .1);
 		end;
-format County_Incidence_100k State_Incidence_100k County_Incidence_100k_Quarterly State_Incidence_100k_Quarterly 8.1;
+format County_Incidence_100k State_Incidence_100k
+	County_Incidence_100k_Quarterly State_Incidence_100k_Quarterly
+	8.1;
 run;
 
 proc sort data=case_rates_final;
-by descending Year Quarter Disease County_substr;
+by descending Year Disease County_substr Quarter;
 run;
 
 /*Un-comment section below to export file for importing to Tableau:*/
 
-proc export data=case_rates_final
-    outfile="T:\Tableau\NCD3 2.0\NCD3 2.0 Output\Tableau Data Sources\08-06-24_data_aggregated_quarterly_rounded.xlsx"
-    dbms=xlsx
-    replace;
-    sheet="Aggregated Cases by County";
-run;
+/*proc export data=case_rates_final*/
+/*    outfile="T:\Tableau\NCD3 2.0\NCD3 2.0 Output\Tableau Data Sources\11-01-24_data_aggregated_quarterly.xlsx"*/
+/*    dbms=xlsx*/
+/*    replace;*/
+/*    sheet="Aggregated Cases by County";*/
+/*run;*/
+
+/*proc export data=case_rates_final*/
+/*    outfile="T:\Tableau\NCD3 2.0\NCD3 2.0 Output\Tableau Data Sources\10-02-24_data_aggregated_annual.xlsx"*/
+/*    dbms=xlsx*/
+/*    replace;*/
+/*    sheet="Aggregated Cases by County";*/
+/*run;*/
 
 
 
@@ -1013,125 +1062,52 @@ run;
 
 %macro suppress_cases(group);
 
+/*data &group;*/
+/*set &group;*/
+/*format County_Demo_Annual_Incidence 10.1;*/
+/*County_Demo_Annual_Incidence=County_Demo_Annual_Cases/Population_County*100000;*/
+/*County_Annual_Cases_Sup=0;*/
+/*County_Annual_Cases_char=put(County_Demo_Annual_Cases, 10.);*/
+/*if Demographic NE 'Missing/Unknown' and State_Annual_Incidence=. then do;*/
+/*	County_Annual_Cases_Sup=County_Demo_Annual_Cases;*/
+/*	County_Demo_Annual_Cases=0;*/
+/*	County_Annual_Cases_char='Suppressed';*/
+/*	end;*/
+/*if Demographic NE 'Missing/Unknown' and County_Demo_Annual_Incidence=. then do;*/
+/*	County_Annual_Cases_Sup=County_Demo_Annual_Cases;*/
+/*	County_Demo_Annual_Cases=0;*/
+/*	County_Annual_Cases_char='Suppressed';*/
+/*	end;*/
+
+
+/*If population<500 for year-county-disease-demographic, then suppress those cases,
+	and also suppress second lowest if not already included;
+	total cases suppressed are shown in 'Suppressed' subgroup*/
 data &group;
 set &group;
-format County_Annual_Incidence 10.1;
-County_Annual_Incidence=County_Annual_Cases/Population_County*100000;
-County_Annual_Cases_Sup=0;
-/*State_Annual_Cases_Sup=0;*/
-/*format Suppression $3.;*/
-/*Suppression='No';*/
-County_Annual_Cases_char=put(County_Annual_Cases, 10.);
-if Demographic NE 'Missing/Unknown' and State_Annual_Incidence=. then do;
-	County_Annual_Cases_Sup=County_Annual_Cases;
-	County_Annual_Cases=0;
+format County_Demo_Annual_Incidence 10.1;
+County_Demo_Annual_Incidence=round(County_Demo_Annual_Cases/Population_County*100000, .1);
+pop_lt500_suppressed=0;
+County_Annual_Cases_char=put(County_Demo_Annual_Cases, 10.);
+if Demographic NE 'Missing/Unknown' and Demographic NE '' and Demographic NE 'Other' and State_Annual_Incidence=. then do;
+	pop_lt500_suppressed=County_Demo_Annual_Cases;
+	County_Demo_Annual_Cases=0;
 	County_Annual_Cases_char='Suppressed';
-/*	State_Annual_Cases_Sup=State_Annual_Cases; State_Annual_Cases='Suppressed';*/
-/*	Suppression='Yes';*/	end;
-if Demographic NE 'Missing/Unknown' and County_Annual_Incidence=. then do;
-	County_Annual_Cases_Sup=County_Annual_Cases;
-	County_Annual_Cases=0;
+	end;
+if Demographic NE 'Missing/Unknown' and Demographic NE '' and Demographic NE 'Other' and County_Demo_Annual_Incidence=. then do;
+	pop_lt500_suppressed=County_Demo_Annual_Cases;
+	County_Demo_Annual_Cases=0;
 	County_Annual_Cases_char='Suppressed';
-/*	Suppression='Yes';*/	end;
-
-%mend;
-
-%macro suppress_cases_mult(group);
-
-data &group;
-set &group;
-format County_Annual_Incidence 10.1;
-County_Annual_Incidence=County_Annual_Cases/Population_County*100000;
-County_Annual_Cases_Sup=0;
-/*State_Annual_Cases_Sup=0;*/
-/*format Suppression $3.;*/
-/*Suppression='No';*/
-County_Annual_Cases_char=put(County_Annual_Cases, 10.);
-if Demographic NE 'Missing/Unknown' and Demographic2 NE 'Missing/Unknown' and State_Annual_Incidence=. then do;
-	County_Annual_Cases_Sup=County_Annual_Cases;
-	County_Annual_Cases=0;
-	County_Annual_Cases_char='Suppressed';
-/*	State_Annual_Cases_Sup=State_Annual_Cases; State_Annual_Cases='Suppressed';*/
-	/*Suppression='Yes';*/	end;
-if Demographic NE 'Missing/Unknown' Demographic2 NE 'Missing/Unknown' and County_Annual_Incidence=. then do;
-	County_Annual_Cases_Sup=County_Annual_Cases;
-	County_Annual_Cases=0;
-	County_Annual_Cases_char='Suppressed';
-	/*Suppression='Yes';*/	end;
+	end;
 run;
-
-%mend;
-
-
-%macro secondary_suppress(group);
 
 proc sort data=&group;
-  by Year County_substr Disease Population_County descending County_Annual_Cases_Sup;
+  by Year County_substr Disease Population_County/* County_Annual_Cases_Sup*/;
 run;
 
-data SecondLowestTable(keep=Year County_substr Disease SecondLowest);
+data SecondLowestPopTable(keep=Year County_substr Disease SecondLowestPop);
 set &group;
-SecondLowest=Demographic;
-by Year County_substr Disease;
-if first.Disease then Marker=0;
-  Marker+1;
-if Marker = 2;
-run;
-
-proc sql;
-create table &group as
-select a.*, b.*
-from &group a left join SecondLowestTable b
-		on a.Year=b.Year and a.County_substr=b.County_substr and a.Disease=b.Disease;
-
-proc sql;
-create table suppression as
-select Year, County_substr, Disease, Disease_Group, Demographic_Group,
-	'Suppressed' as Demographic, 'Yes' as Suppression,
-	sum(County_Annual_Cases_Sup) as County_Annual_Cases
-from &group
-group by Year, County_substr, Disease, Disease_Group, Demographic_Group
-having County_Annual_Cases>0
-order by Year desc, County_substr, Disease;
-
-data &group;
-set &group suppression(drop=Suppression);
-run;
-
-proc sql;
-create table &group as
-select a.*, b.*
-from &group a left join suppression(keep=Year County_substr Disease Suppression) b
-		on a.Year=b.Year and a.County_substr=b.County_substr and a.Disease=b.Disease;
-
-data &group;
-set &group;
-if Suppression='' then Suppression='No';
-run;
-
-data &group;
-set &group;
-County_Annual_Cases_char=put(County_Annual_Cases, 10.);
-if Suppression='Yes' and Demographic ne 'Suppressed' then County_Annual_Cases_char='Suppressed';
-if Suppression='Yes' and Demographic=SecondLowest then do;
-	County_Annual_Cases=0;
-	County_Annual_Cases_char='Suppressed'; end;
-drop SecondLowest;
-run;
-
-%mend;
-
-
-%macro secondary_suppress_mult(group);
-
-proc sort data=&group;
-  by Year County_substr Disease Population_County descending County_Annual_Cases_Sup;
-run;
-
-data SecondLowestTable(keep=Year County_substr Disease SecondLowest SecondLowest2);
-set &group;
-SecondLowest=Demographic;
-SecondLowest2=Demographic2;
+SecondLowestPop=Demographic;
 by Year County_substr Disease;
 if first.Disease then Marker=0;
   Marker+1;
@@ -1142,46 +1118,468 @@ run;
 proc sql;
 create table &group as
 select a.*, b.*
-from &group a left join SecondLowestTable b
+from &group a left join SecondLowestPopTable b
 		on a.Year=b.Year and a.County_substr=b.County_substr and a.Disease=b.Disease;
 
+/*proc sort data=&group;*/
+/*by Year County_substr Disease Demographic;*/
+/*run;*/
+
 proc sql;
-create table suppression as
-select Year, County_substr, Disease, Disease_Group, Demographic_Group,
-	'Suppressed' as Demographic, 'Suppressed' as Demographic2,  'Yes' as Suppression,
-	sum(County_Annual_Cases_Sup) as County_Annual_Cases
+create table suppress_le500 as
+select Year, County_substr, Disease,
+/*	Disease_Group, Cases_County_Annual, Demographic_Group, SecondLowestPop,*/
+/*	'Total Suppressed' as Demographic,*/
+	'Yes' as pop_lt500,
+	sum(pop_lt500_suppressed) as suppressed_total
 from &group
-group by Year, County_substr, Disease, Disease_Group, Demographic_Group
-having County_Annual_Cases>0
-order by Year desc, County_substr, Disease;
+group by Year, County_substr, Disease
+/*	, Disease_Group, Cases_County_Annual, Demographic_Group, SecondLowestPop*/
+having suppressed_total>0;
+
+/*data &group;*/
+/*set &group suppress_le500(drop=pop_lt500 suppressed_total);*/
+/*run;*/
+
+proc sql;
+create table &group as
+select a.*, b.pop_lt500, b.suppressed_total
+from &group a left join suppress_le500 b
+		on a.Year=b.Year and a.County_substr=b.County_substr and a.Disease=b.Disease;
 
 data &group;
-set &group suppression(drop=Suppression);
+set &group;
+County_Annual_Cases_char=put(County_Demo_Annual_Cases, 10.);
+/*if Suppression='Yes' and Demographic ne 'Suppressed'*/
+/*if Demographic NE 'Missing/Unknown' and Population_County=. and Demographic ne 'Suppressed'*/
+/*	then County_Annual_Cases_char='Suppressed';*/
+if Demographic NE 'Missing/Unknown' and Demographic NE 'Other' and Population_County=. then County_Annual_Cases_char='Suppressed';
+if pop_lt500='Yes' and Demographic=SecondLowestPop then do;
+	County_Demo_Annual_Cases=0;
+	County_Annual_Cases_char='Suppressed';
+	end;
+	else if pop_lt500='' then pop_lt500='No';
+drop SecondLowestPop pop_lt500_suppressed;
+run;
+
+
+/*If only one bar is shown in figure for year-county-disease-demographic,
+	then suppress number of cases and number suppressed for that demographic*/
+/*proc sql;*/
+/*create table count_bars as*/
+/*select Year, County_substr, Disease,*/
+/*	count(Demographic) as n_bars*/
+/*from &group*/
+/*where Demographic ne 'Suppressed'*/
+/*group by Year, County_substr, Disease;*/
+/**/
+/*proc sql;*/
+/*create table &group as*/
+/*select a.*, b.**/
+/*from &group a left join count_bars b*/
+/*		on a.Year=b.Year and a.County_substr=b.County_substr and a.Disease=b.Disease;*/
+/**/
+/*data &group(drop=n_bars pop_lt500);*/
+/*set &group;*/
+/*if pop_lt500='Yes' and n_bars =1 then do;*/
+/*	County_Demo_Annual_Cases=.;*/
+/*	County_Demo_Annual_Incidence=.;*/
+/*	County_Annual_Cases_char='Suppressed';*/
+/*	end;*/
+/*run;*/
+
+%mend;
+
+
+%macro suppress_cases_mult(group);
+
+data &group;
+set &group;
+format County_Demo_Annual_Incidence 10.1;
+County_Demo_Annual_Incidence=round(County_Demo_Annual_Cases/Population_County*100000, .1);
+pop_lt500_suppressed=0;
+County_Annual_Cases_char=put(County_Demo_Annual_Cases, 10.);
+if Demographic NE 'Missing/Unknown' and Demographic NE '' and Demographic NE 'Other'
+	and Demographic2 NE 'Missing/Unknown' and Demographic2 NE '' and Demographic2 NE 'Other' and State_Annual_Incidence=. then do;
+		pop_lt500_suppressed=County_Demo_Annual_Cases;
+		County_Demo_Annual_Cases=0;
+		County_Annual_Cases_char='Suppressed';
+		end;
+if Demographic NE 'Missing/Unknown' and Demographic NE '' and Demographic NE 'Other'
+	and Demographic2 NE 'Missing/Unknown' and Demographic2 NE '' and Demographic2 NE 'Other' and County_Demo_Annual_Incidence=. then do;
+		pop_lt500_suppressed=County_Demo_Annual_Cases;
+		County_Demo_Annual_Cases=0;
+		County_Annual_Cases_char='Suppressed';
+		end;
+run;
+
+proc sort data=&group;
+  by Year County_substr Disease Population_County/* County_Annual_Cases_Sup*/;
+run;
+
+data SecondLowestPopTable(keep=Year County_substr Disease SecondLowestPop SecondLowestPop2);
+set &group;
+SecondLowestPop=Demographic;
+SecondLowestPop2=Demographic2;
+by Year County_substr Disease;
+if first.Disease then Marker=0;
+  Marker+1;
+if Marker = 2;
+drop Marker;
 run;
 
 proc sql;
 create table &group as
 select a.*, b.*
-from &group a left join suppression(keep=Year County_substr Disease Suppression) b
+from &group a left join SecondLowestPopTable b
+		on a.Year=b.Year and a.County_substr=b.County_substr and a.Disease=b.Disease;
+
+/*proc sort data=&group;*/
+/*by Year County_substr Disease Demographic Demographic2;*/
+/*run;*/
+
+proc sql;
+create table suppress_le500 as
+select Year, County_substr, Disease,
+/*	Disease_Group, Cases_County_Annual, Demographic_Group, SecondLowestPop, SecondLowestPop2,*/
+/*	'Total Suppressed' as Demographic, 'Total Suppressed' as Demographic2,*/
+	'Yes' as pop_lt500,
+	sum(pop_lt500_suppressed) as suppressed_total
+from &group
+group by Year, County_substr, Disease
+/*	, Disease_Group, Cases_County_Annual, Demographic_Group, SecondLowestPop, SecondLowestPop*/
+having suppressed_total>0;
+
+/*data &group;*/
+/*set &group suppress_le500(drop=pop_lt500 suppressed_total);*/
+/*run;*/
+
+proc sql;
+create table &group as
+select a.*, b.*
+from &group a left join suppress_le500 b
 		on a.Year=b.Year and a.County_substr=b.County_substr and a.Disease=b.Disease;
 
 data &group;
 set &group;
-if Suppression='' then Suppression='No';
+/*County_Annual_Cases_char=put(County_Demo_Annual_Cases, 10.);*/
+/*if Suppression='Yes' and Demographic ne 'Suppressed'*/
+/*if Demographic NE 'Missing/Unknown' and Demographic2 NE 'Missing/Unknown' and Population_County=. and Demographic ne 'Suppressed'*/
+/*	then County_Annual_Cases_char='Suppressed';*/
+if pop_lt500='Yes' and Demographic=SecondLowestPop and Demographic2=SecondLowestPop2 then do;
+	County_Demo_Annual_Cases=0;
+	County_Demo_Annual_Incidence=.;
+	County_Annual_Cases_char='Suppressed';
+	end;
+	else if pop_lt500='' then pop_lt500='No';
+drop SecondLowestPop SecondLowestPop2 pop_lt500_suppressed;
 run;
 
-data &group;
+/*proc sql;*/
+/*create table count_bars as*/
+/*select Year, County_substr, Disease, */
+/*	count(Demographic) as n_bars*/
+/*from &group*/
+/*where Demographic ne 'Suppressed' and Demographic2 ne 'Suppressed'*/
+/*group by Year, County_substr, Disease;*/
+/**/
+/*proc sql;*/
+/*create table &group as*/
+/*select a.*, b.**/
+/*from &group a left join count_bars b*/
+/*		on a.Year=b.Year and a.County_substr=b.County_substr and a.Disease=b.Disease;*/
+/**/
+/*data &group(drop=n_bars);*/
+/*set &group;*/
+/*if pop_lt500='Yes' and n_bars =1 then do;*/
+/*	County_Demo_Annual_Cases=.;*/
+/*	County_Annual_Cases_char='Suppressed';*/
+/*	end;*/
+/*run;*/
+
+/*If cases <= 5 for year-county-disease-demographic, then suppress those cases, 
+	and also suppress second lowest case aggregate if not already included;
+	total cases suppressed are added to 'Suppressed' subgroup*/
+proc sort data=&group;
+  by Year County_substr Disease County_Demo_Annual_Cases;
+run;
+
+data SecondLowestCasesTable(keep=Year County_substr Disease SecondLowestCases);
 set &group;
-County_Annual_Cases_char=put(County_Annual_Cases, 10.);
-if Suppression='Yes' and Demographic ne 'Suppressed' and Demographic2 ne 'Suppressed'
-	then County_Annual_Cases_char='Suppressed';
-if Suppression='Yes' and Demographic=SecondLowest and Demographic2=SecondLowest2 then do;
-	County_Annual_Cases=0;
-	County_Annual_Cases_char='Suppressed'; end;
-drop SecondLowest SecondLowest2;
+where County_Demo_Annual_Cases ne 0;
+SecondLowestCases=County_Demo_Annual_Cases;
+by Year County_substr Disease;
+if first.Disease then Marker=0;
+  Marker+1;
+if Marker = 2;
+drop Marker;
+run;
+
+proc sql;
+create table &group as
+select a.*, b.*
+from &group a left join SecondLowestCasesTable b
+		on a.Year=b.Year and a.County_substr=b.County_substr and a.Disease=b.Disease;
+
+proc sql;
+create table county_demo_le5 as
+select Year, County_substr, Disease, 
+	sum(County_Demo_Annual_Cases) as demo_cases_le5_count,
+	case when min(County_Demo_Annual_Cases) le 5 then 'Yes' else 'No'
+	end as demo_cases_le5
+from &group
+/*where Demographic ne 'Suppressed' and Demographic2 ne 'Suppressed' and County_Demo_Annual_Cases ne 0*/
+where 0 < County_Demo_Annual_Cases le 5 and Demographic ne ''
+group by Year, County_substr, Disease;
+
+proc sql;
+create table &group as
+select a.*, b.demo_cases_le5_count, b.demo_cases_le5
+from &group a left join county_demo_le5 b
+		on a.Year=b.Year and a.County_substr=b.County_substr and a.Disease=b.Disease;
+
+/*proc sql;*/
+/*create table county_demo_le5_count as*/
+/*select Year, County_substr, Disease, */
+/*	sum(County_Demo_Annual_Cases) as demo_cases_le5_count*/
+/*from &group*/
+/*where County_Demo_Annual_Cases le 5*/
+/*group by Year, County_substr, Disease;*/
+/**/
+/*proc sql;*/
+/*create table &group as*/
+/*select a.*, b.demo_cases_le5_count*/
+/*from &group a left join county_demo_le5_count b*/
+/*		on a.Year=b.Year and a.County_substr=b.County_substr and a.Disease=b.Disease;*/
+
+/*data &group(drop=SecondLowestCases demo_cases_le5);*/
+/*set &group;*/
+/*if 0 < County_Demo_Annual_Cases le 5 then County_Annual_Cases_char='Suppressed';*/
+/*if demo_cases_le5='Yes' and County_Demo_Annual_Cases=SecondLowestCases then County_Annual_Cases_char='Suppressed';*/
+/*run;*/
+
+data &group(drop=SecondLowestCases demo_cases_le5 demo_cases_le5_count);
+set &group;
+if demo_cases_le5='Yes' and suppressed_total=. then suppressed_total=0;
+if demo_cases_le5='Yes' then suppressed_total=suppressed_total+demo_cases_le5_count+SecondLowestCases;
+if 0 < County_Demo_Annual_Cases le 5 then do;
+	County_Demo_Annual_Cases=0;
+	County_Demo_Annual_Incidence=.;
+	County_Annual_Cases_char='Suppressed';
+	end;
+if demo_cases_le5='Yes' and County_Demo_Annual_Cases=SecondLowestCases then do;
+	County_Demo_Annual_Cases=0;
+	County_Demo_Annual_Incidence=.;
+	County_Annual_Cases_char='Suppressed';
+	end;
 run;
 
 %mend;
+
+
+/*%macro secondary_suppress(group);*/
+/**/
+/*proc sort data=&group;*/
+/*  by Year County_substr Disease Population_County descending County_Annual_Cases_Sup;*/
+/*run;*/
+/**/
+/*data SecondLowestTable(keep=Year County_substr Disease SecondLowest);*/
+/*set &group;*/
+/*SecondLowest=Demographic;*/
+/*by Year County_substr Disease;*/
+/*if first.Disease then Marker=0;*/
+/*  Marker+1;*/
+/*if Marker = 2;*/
+/*run;*/
+/**/
+/*proc sql;*/
+/*create table &group as*/
+/*select a.*, b.**/
+/*from &group a left join SecondLowestTable b*/
+/*		on a.Year=b.Year and a.County_substr=b.County_substr and a.Disease=b.Disease;*/
+/**/
+/*proc sql;*/
+/*create table suppression as*/
+/*select Year, County_substr, Disease, Disease_Group, Cases_County_Annual,*/
+/*	'Suppressed' as Demographic, 'Yes' as pop_lt500,*/
+/*	sum(County_Annual_Cases_Sup) as County_Demo_Annual_Cases*/
+/*from &group*/
+/*group by Year, County_substr, Disease, Disease_Group, Cases_County_Annual*/
+/*having County_Demo_Annual_Cases>0*/
+/*order by Year desc, County_substr, Disease;*/
+/**/
+/*data &group;*/
+/*set &group suppression(drop=pop_lt500);*/
+/*run;*/
+/**/
+/*proc sql;*/
+/*create table &group as*/
+/*select a.*, b.**/
+/*from &group a left join suppression(keep=Year County_substr Disease pop_lt500) b*/
+/*		on a.Year=b.Year and a.County_substr=b.County_substr and a.Disease=b.Disease;*/
+/**/
+/*data &group;*/
+/*set &group;*/
+/*if pop_lt500='' then pop_lt500='No';*/
+/*run;*/
+/**/
+/*data &group;*/
+/*set &group;*/
+/*County_Annual_Cases_char=put(County_Demo_Annual_Cases, 10.);*/
+/*if pop_lt500='Yes' and Demographic=SecondLowest then do;*/
+/*	County_Demo_Annual_Cases=0;*/
+/*	County_Annual_Cases_char='Suppressed'; end;*/
+/*drop SecondLowest;*/
+/*run;*/
+/**/
+/*proc sql;*/
+/*create table count_bars as*/
+/*select Year, County_substr, Disease, */
+/*	count(Demographic) as n_bars*/
+/*from &group*/
+/*where Demographic ne 'Suppressed'*/
+/*group by Year, County_substr, Disease;*/
+/**/
+/*proc sql;*/
+/*create table &group as*/
+/*select a.*, b.**/
+/*from &group a left join count_bars b*/
+/*		on a.Year=b.Year and a.County_substr=b.County_substr and a.Disease=b.Disease;*/
+/**/
+/*data &group(drop=n_bars pop_lt500);*/
+/*set &group;*/
+/*if pop_lt500='Yes' and n_bars =1 then do;*/
+/*	County_Annual_Cases_char='Suppressed';*/
+/*	County_Demo_Annual_Cases=.;*/
+/*	end;*/
+/*run;*/
+/**/
+/*%mend;*/
+
+
+/*%macro secondary_suppress_mult(group);*/
+/**/
+/*proc sort data=&group;*/
+/*  by Year County_substr Disease Population_County descending County_Annual_Cases_Sup;*/
+/*run;*/
+/**/
+/*data SecondLowestTable(keep=Year County_substr Disease SecondLowest SecondLowest2);*/
+/*set &group;*/
+/*SecondLowest=Demographic;*/
+/*SecondLowest2=Demographic2;*/
+/*by Year County_substr Disease;*/
+/*if first.Disease then Marker=0;*/
+/*  Marker+1;*/
+/*if Marker = 2;*/
+/*drop Marker;*/
+/*run;*/
+/**/
+/*proc sql;*/
+/*create table &group as*/
+/*select a.*, b.**/
+/*from &group a left join SecondLowestTable b*/
+/*		on a.Year=b.Year and a.County_substr=b.County_substr and a.Disease=b.Disease;*/
+/**/
+/*proc sql;*/
+/*create table suppression as*/
+/*select Year, County_substr, Disease, Disease_Group, Cases_County_Annual,*/
+/*	'Suppressed' as Demographic, 'Suppressed' as Demographic2,  'Yes' as pop_lt500,*/
+/*	sum(County_Annual_Cases_Sup) as County_Demo_Annual_Cases*/
+/*from &group*/
+/*group by Year, County_substr, Disease, Disease_Group, Cases_County_Annual*/
+/*having County_Demo_Annual_Cases>0*/
+/*order by Year desc, County_substr, Disease;*/
+/**/
+/*data &group;*/
+/*set &group suppression(drop=pop_lt500);*/
+/*run;*/
+/**/
+/*proc sql;*/
+/*create table &group as*/
+/*select a.*, b.**/
+/*from &group a left join suppression(keep=Year County_substr Disease pop_lt500) b*/
+/*		on a.Year=b.Year and a.County_substr=b.County_substr and a.Disease=b.Disease;*/
+/**/
+/*data &group;*/
+/*set &group;*/
+/*if pop_lt500='' then pop_lt500='No';*/
+/*run;*/
+/**/
+/*data &group;*/
+/*set &group;*/
+/*County_Annual_Cases_char=put(County_Demo_Annual_Cases, 10.);*/
+/*if pop_lt500='Yes' and Demographic=SecondLowest and Demographic2=SecondLowest2 then do;*/
+/*	County_Demo_Annual_Cases=0;*/
+/*	County_Annual_Cases_char='Suppressed'; end;*/
+/*drop SecondLowest SecondLowest2;*/
+/*run;*/
+/**/
+/*proc sql;*/
+/*create table count_bars as*/
+/*select Year, County_substr, Disease, */
+/*	count(Demographic) as n_bars*/
+/*from &group*/
+/*where Demographic ne 'Suppressed' and Demographic2 ne 'Suppressed'*/
+/*group by Year, County_substr, Disease;*/
+/**/
+/*proc sql;*/
+/*create table &group as*/
+/*select a.*, b.**/
+/*from &group a left join count_bars b*/
+/*		on a.Year=b.Year and a.County_substr=b.County_substr and a.Disease=b.Disease;*/
+/**/
+/*data &group(drop=n_bars pop_lt500);*/
+/*set &group;*/
+/*if pop_lt500='Yes' and n_bars =1 then do;*/
+/*	County_Annual_Cases_char='Suppressed';*/
+/*	County_Demo_Annual_Cases=.;*/
+/*	end;*/
+/*run;*/
+/**/
+/**/
+/*proc sort data=&group;*/
+/*  by Year County_substr Disease County_Demo_Annual_Cases;*/
+/*run;*/
+/**/
+/*data SecondLowestCasesTable(keep=Year County_substr Disease SecondLowestCases);*/
+/*set &group;*/
+/*where County_Demo_Annual_Cases ne 0;*/
+/*SecondLowestCases=County_Demo_Annual_Cases;*/
+/*by Year County_substr Disease;*/
+/*if first.Disease then Marker=0;*/
+/*  Marker+1;*/
+/*if Marker = 2;*/
+/*drop Marker;*/
+/*run;*/
+/**/
+/*proc sql;*/
+/*create table &group as*/
+/*select a.*, b.**/
+/*from &group a left join SecondLowestCasesTable b*/
+/*		on a.Year=b.Year and a.County_substr=b.County_substr and a.Disease=b.Disease;*/
+/**/
+/*proc sql;*/
+/*create table county_demo_le5 as*/
+/*select Year, County_substr, Disease, */
+/*	case when min(County_Demo_Annual_Cases) le 5 then 'Yes' else 'No'*/
+/*	end as demo_cases_le5*/
+/*from &group*/
+/*where Demographic ne 'Suppressed' and Demographic2 ne 'Suppressed' and County_Demo_Annual_Cases ne 0*/
+/*group by Year, County_substr, Disease;*/
+/**/
+/*proc sql;*/
+/*create table &group as*/
+/*select a.*, b.**/
+/*from &group a left join county_demo_le5 b*/
+/*		on a.Year=b.Year and a.County_substr=b.County_substr and a.Disease=b.Disease;*/
+/**/
+/*data &group(drop=SecondLowestCases demo_cases_le5);*/
+/*set &group;*/
+/*if 0 < County_Demo_Annual_Cases le 5 then County_Annual_Cases_char='Suppressed';*/
+/*if demo_cases_le5='Yes' and County_Demo_Annual_Cases=SecondLowestCases then County_Annual_Cases_char='Suppressed';*/
+/*run;*/
+/**/
+/*%mend;*/
 
 
 /*If no data, ''; N and IR not shown.
@@ -1197,26 +1595,32 @@ data agg_agegroup;
 set demoInput;
 	Demographic=put(age, agegrp.);
 run;
+
 proc sql;
 create table agg_agegroup as
-select Year, County_substr, Disease, Disease_Group,
-	Demographic, count(distinct CASE_ID) as County_Annual_Cases
+select Year, County_substr, Disease, Disease_Group, 
+	Demographic, count(distinct CASE_ID) as County_Demo_Annual_Cases
 from agg_agegroup
 group by Year, County_substr, Disease, Disease_Group, Demographic
 order by Year desc, County_substr, Disease, Demographic;
 
 proc sql;
+create table agg_agegroup as
+select a.*, b.Cases_County_Annual
+from agg_agegroup a left join agg_annual b
+	on a.Year=b.year and a.County_substr=b.County_substr and a.Disease=b.Disease;
+
+proc sql;
 create table agg_agegroup_state as
 select
 	Year, Disease, Demographic,
-	sum(County_Annual_Cases) as State_Annual_Cases
+	sum(County_Demo_Annual_Cases) as State_Annual_Cases
 from agg_agegroup
 group by Year, Disease, Demographic
 order by Year desc, Disease, Demographic;
-
 proc sql;
 create table agg_agegroup as
-select a.*, b.*
+select a.*, b.State_Annual_Cases
 from agg_agegroup a left join agg_agegroup_state b
 	on a.Year=b.year and a.Disease=b.Disease and a.Demographic=b.Demographic
 order by Year desc, County_substr, Disease, Demographic;
@@ -1231,7 +1635,7 @@ from agg_agegroup a left join demo_state_pops_sup b
 proc sql;
 create table rates_agegroup as
 select
-	Year, County_substr, Disease, Disease_Group, Demographic, County_Annual_Cases, State_Annual_Cases,
+	Year, County_substr, Disease, Disease_Group, Demographic, Cases_County_Annual, County_Demo_Annual_Cases, State_Annual_Cases,
 	case
 			when Demographic='0-12' then age_0_12
 			when Demographic='13-17' then age_13_17
@@ -1253,7 +1657,7 @@ proc sql;
 create table rates_agegroup as
 select
 	Year, County_substr, Disease, Disease_Group, Demographic,
-	State_Annual_Cases, State_Annual_Incidence, County_Annual_Cases, Population_State,
+	State_Annual_Cases, State_Annual_Incidence, Cases_County_Annual, County_Demo_Annual_Cases, Population_State,
 	case when Demographic='0-12' then age_0_12
 		when Demographic='13-17' then age_13_17
 		when Demographic='18-24' then age_18_24
@@ -1265,33 +1669,10 @@ select
 from rates_agegroup
 order by Year desc, County_substr, Disease, Demographic;
 
-/*data rates_agegroup;*/
-/*set rates_agegroup;*/
-/*format County_Annual_Incidence 10.1;*/
-/*County_Annual_Incidence=County_Annual_Cases/Population_County*100000;*/
-/*County_Annual_Cases_Sup=0;*/
-/*State_Annual_Cases_Sup=0;*/
-/*format Suppression $3.;*/
-/*Suppression='No';*/
-/*if Demographic NE 'Missing/Unknown' and State_Annual_Incidence=. then do;*/
-/*	County_Annual_Cases_Sup=County_Annual_Cases;*/
-/*	County_Annual_Cases=0;*/
-/*	State_Annual_Cases_Sup=State_Annual_Cases;*/
-/*	State_Annual_Cases=0; State_Annual_Incidence=0;*/
-/*	Suppression='Yes';	end;*/
-/*if Demographic NE 'Missing/Unknown' and County_Annual_Incidence=. then do;*/
-/*	County_Annual_Cases_Sup=County_Annual_Cases;*/
-/*	County_Annual_Cases=0;*/
-/*	Suppression='Yes';	end;*/
-/*Demographic_Group='Age Group';*/
-/*run;*/
+/*%suppress_cases(rates_agegroup);*/
+/*%secondary_suppress(rates_agegroup);*/
 
-%suppress_cases(rates_agegroup);
-%secondary_suppress(rates_agegroup);
-
-data rates_agegroup;
-set rates_agegroup;
-Demographic_Group='Age Group';
+proc delete data=work.agg_agegroup work.agg_agegroup_state;
 run;
 
 
@@ -1301,16 +1682,22 @@ proc sql;
 create table agg_GENDER as
 select
 	Year, County_substr, Disease, Disease_Group,
-	GENDER as Demographic length=45, count(distinct CASE_ID) as County_Annual_Cases
+	GENDER as Demographic length=45, count(distinct CASE_ID) as County_Demo_Annual_Cases
 from demoInput
 group by Year, County_substr, Disease, Disease_Group, Demographic
 order by Year desc, County_substr, Disease, Demographic;
 
 proc sql;
+create table agg_GENDER as
+select a.*, b.Cases_County_Annual
+from agg_GENDER a left join agg_annual b
+	on a.Year=b.year and a.County_substr=b.County_substr and a.Disease=b.Disease;
+
+proc sql;
 create table agg_GENDER_state as
 select
 	Year, Disease, Demographic,
-	sum(County_Annual_Cases) as State_Annual_Cases
+	sum(County_Demo_Annual_Cases) as State_Annual_Cases
 from agg_GENDER
 group by Year, Disease, Demographic
 order by Year desc, Disease, Demographic;
@@ -1332,7 +1719,7 @@ from agg_GENDER a left join demo_state_pops_sup b
 proc sql;
 create table rates_GENDER as
 select
-	Year, County_substr, Disease, Disease_Group, Demographic, County_Annual_Cases, State_Annual_Cases,
+	Year, County_substr, Disease, Disease_Group, Demographic, Cases_County_Annual, County_Demo_Annual_Cases, State_Annual_Cases,
 	case
 			when Demographic='Female' and Disease='Influenza, adult death' then female_age_18GE
 			when Demographic='Female' and Disease='Influenza, pediatric death' then female_age_0_17
@@ -1354,7 +1741,7 @@ proc sql;
 create table rates_GENDER as
 select
 	Year, County_substr, Disease, Disease_Group, Demographic,
-	State_Annual_Cases, State_Annual_Incidence, County_Annual_Cases, Population_State,
+	State_Annual_Cases, State_Annual_Incidence, Cases_County_Annual, County_Demo_Annual_Cases, Population_State,
 	case
 			when Demographic='Female' and Disease='Influenza, adult death' then female_age_18GE
 			when Demographic='Female' and Disease='Influenza, pediatric death' then female_age_0_17
@@ -1367,52 +1754,10 @@ select
 from rates_GENDER
 order by Year desc, County_substr, Disease, Demographic;
 
-/*data rates_GENDER;*/
-/*set rates_GENDER;*/
-/*format County_Annual_Incidence 10.1;*/
-/*County_Annual_Incidence=County_Annual_Cases/Population_County*100000;*/
-/*County_Annual_Cases_Sup=0;*/
-/*State_Annual_Cases_Sup=0;*/
-/*if Demographic NE '' and State_Annual_Incidence=. then do;*/
-/*	County_Annual_Cases_Sup=County_Annual_Cases;*/
-/*	County_Annual_Cases=0;*/
-/*	State_Annual_Cases_Sup=State_Annual_Cases;*/
-/*	State_Annual_Cases=0;	end;*/
-/*if Demographic NE '' and County_Annual_Incidence=. then do;*/
-/*	County_Annual_Cases_Sup=County_Annual_Cases;*/
-/*	County_Annual_Cases=0;	end;*/
-/*Demographic_Group='Gender';*/
-/*run;*/
-
-data rates_GENDER;
-set rates_GENDER;
-format County_Annual_Incidence 10.1;
-County_Annual_Incidence=County_Annual_Cases/Population_County*100000;
-County_Annual_Cases_Sup=0;
-State_Annual_Cases_Sup=0;
-/*format Suppression $3.;*/
-/*Suppression='No';*/
-if Demographic NE '' and State_Annual_Incidence=. then do;
-	County_Annual_Cases_Sup=County_Annual_Cases;
-	County_Annual_Cases=0;
-	State_Annual_Cases_Sup=State_Annual_Cases;
-	State_Annual_Cases=0; 
-/*	Suppression='Yes';*/
-	end;
-if Demographic NE '' and County_Annual_Incidence=. then do;
-	County_Annual_Cases_Sup=County_Annual_Cases;
-	County_Annual_Cases=0;
-/*	Suppression='Yes';*/
-	end;
-run;
-
-
 /*%suppress_cases(rates_GENDER);*/
-%secondary_suppress(rates_GENDER);
+/*%secondary_suppress(rates_GENDER);*/
 
-data rates_GENDER;
-set rates_GENDER;
-Demographic_Group='Gender';
+proc delete data=work.agg_GENDER work.agg_GENDER_state;
 run;
 
 
@@ -1422,21 +1767,23 @@ proc sql;
 create table agg_HISPANIC as
 select
 	Year, County_substr, Disease, Disease_Group,
-/*	'Hispanic_'||HISPANIC as HISPANIC length=17,*/ HISPANIC as Demographic length=45,
-	count(distinct CASE_ID) as County_Annual_Cases
+	HISPANIC as Demographic length=45,
+	count(distinct CASE_ID) as County_Demo_Annual_Cases
 from demoInput
 group by Year, County_substr, Disease, Disease_Group, Demographic
 order by Year desc, County_substr, Disease, Demographic;
-/*data agg_HISPANIC;*/
-/*set agg_HISPANIC;*/
-/*if Demographic='Hispanic_' then Demographic='Hispanic_NoAnswer';*/
-/*run;*/
+
+proc sql;
+create table agg_HISPANIC as
+select a.*, b.Cases_County_Annual
+from agg_HISPANIC a left join agg_annual b
+	on a.Year=b.year and a.County_substr=b.County_substr and a.Disease=b.Disease;
 
 proc sql;
 create table agg_HISPANIC_state as
 select
 	Year, Disease, Demographic,
-	sum(County_Annual_Cases) as State_Annual_Cases
+	sum(County_Demo_Annual_Cases) as State_Annual_Cases
 from agg_HISPANIC
 group by Year, Disease, Demographic
 order by Year desc, Disease, Demographic;
@@ -1458,7 +1805,7 @@ from agg_HISPANIC a left join demo_state_pops_sup b
 proc sql;
 create table rates_HISPANIC as
 select
-	Year, County_substr, Disease, Disease_Group, Demographic, County_Annual_Cases, State_Annual_Cases,
+	Year, County_substr, Disease, Disease_Group, Demographic, Cases_County_Annual, County_Demo_Annual_Cases, State_Annual_Cases,
 	case
 			when Demographic='Hispanic' and Disease='Influenza, adult death' then hispanic_age_18GE
 			when Demographic='Hispanic' and Disease='Influenza, pediatric death' then hispanic_age_0_17
@@ -1480,7 +1827,7 @@ proc sql;
 create table rates_HISPANIC as
 select
 	Year, County_substr, Disease, Disease_Group, Demographic,
-	State_Annual_Cases, State_Annual_Incidence, County_Annual_Cases, Population_State,
+	State_Annual_Cases, State_Annual_Incidence, Cases_County_Annual, County_Demo_Annual_Cases, Population_State,
 	case
 			when Demographic='Hispanic' and Disease='Influenza, adult death' then hispanic_age_18GE
 			when Demographic='Hispanic' and Disease='Influenza, pediatric death' then hispanic_age_0_17
@@ -1493,52 +1840,35 @@ select
 from rates_HISPANIC
 order by Year desc, County_substr, Disease, Demographic;
 
-/*data rates_HISPANIC;*/
-/*set rates_HISPANIC;*/
-/*format County_Annual_Incidence 10.1;*/
-/*County_Annual_Incidence=County_Annual_Cases/Population_County*100000;*/
-/*County_Annual_Cases_Sup=0;*/
-/*State_Annual_Cases_Sup=0;*/
-/*format Suppression $3.;*/
-/*Suppression='No';*/
-/*if Demographic NE 'Missing/Unknown' and State_Annual_Incidence=. then do;*/
-/*	County_Annual_Cases_Sup=County_Annual_Cases;*/
-/*	County_Annual_Cases=0;*/
-/*	State_Annual_Cases_Sup=State_Annual_Cases;*/
-/*	State_Annual_Cases=0; 	end;*/
-/*if Demographic NE 'Missing/Unknown' and County_Annual_Incidence=. then do;*/
-/*	County_Annual_Cases_Sup=County_Annual_Cases;*/
-/*	County_Annual_Cases=0;*/
-/*	Suppression='Yes';	end;*/
-/*Demographic_Group='Ethnicity';*/
-/*run;*/
+/*%suppress_cases(rates_HISPANIC);*/
+/*%secondary_suppress (rates_HISPANIC);*/
 
-%suppress_cases(rates_HISPANIC);
-%secondary_suppress (rates_HISPANIC);
-
-data rates_HISPANIC;
-set rates_HISPANIC;
-Demographic_Group='Ethnicity';
+proc delete data=work.agg_HISPANIC work.agg_HISPANIC_state;
 run;
-
 
 
 /*Generate Race Summary*/
 
 proc sql;
-create table agg_race as
+create table agg_Race as
 select
 	Year, County_substr, Disease, Disease_Group, Race as Demographic length=45,
-	count(distinct CASE_ID) as County_Annual_Cases
+	count(distinct CASE_ID) as County_Demo_Annual_Cases
 from demoInput
 group by Year, County_substr, Disease, Disease_Group, Demographic
 order by Year, County_substr, Disease, Demographic;
 
 proc sql;
+create table agg_Race as
+select a.*, b.Cases_County_Annual
+from agg_Race a left join agg_annual b
+	on a.Year=b.year and a.County_substr=b.County_substr and a.Disease=b.Disease;
+
+proc sql;
 create table agg_Race_state as
 select
 	Year, Disease, Demographic,
-	sum(County_Annual_Cases) as State_Annual_Cases
+	sum(County_Demo_Annual_Cases) as State_Annual_Cases
 from agg_Race
 group by Year, Disease, Demographic
 order by Year desc, Disease, Demographic;
@@ -1560,7 +1890,7 @@ from agg_Race a left join demo_state_pops_sup b
 proc sql;
 create table rates_Race as
 select
-	Year, County_substr, Disease, Disease_Group, Demographic, County_Annual_Cases, State_Annual_Cases,
+	Year, County_substr, Disease, Disease_Group, Demographic, Cases_County_Annual, County_Demo_Annual_Cases, State_Annual_Cases,
 	case
 		when Demographic='American Indian Alaskan Native' and Disease='Influenza, adult death' then ai_an_age_18GE
 		when Demographic='Asian or Native Hawaiian or Pacific Islander' and Disease='Influenza, adult death' then asian_pi_age_18GE
@@ -1591,7 +1921,7 @@ proc sql;
 create table rates_Race as
 select
 	Year, County_substr, Disease, Disease_Group, Demographic,
-	State_Annual_Cases, State_Annual_Incidence, County_Annual_Cases, Population_State,
+	State_Annual_Cases, State_Annual_Incidence, Cases_County_Annual, County_Demo_Annual_Cases, Population_State,
 	case
 		when Demographic='American Indian Alaskan Native' and Disease='Influenza, adult death' then ai_an_age_18GE
 		when Demographic='Asian or Native Hawaiian or Pacific Islander' and Disease='Influenza, adult death' then asian_pi_age_18GE
@@ -1613,35 +1943,11 @@ select
 from rates_Race
 order by Year desc, County_substr, Disease, Demographic;
 
-/*data rates_Race;*/
-/*set rates_Race;*/
-/*format County_Annual_Incidence 10.1;*/
-/*County_Annual_Incidence=County_Annual_Cases/Population_County*100000;*/
-/*County_Annual_Cases_Sup=0;*/
-/*State_Annual_Cases_Sup=0;*/
-/*format Suppression $3.;*/
-/*Suppression='No';*/
-/*if Demographic NE 'Missing/Unknown' and Demographic NE 'Other' and State_Annual_Incidence=. then do;*/
-/*	County_Annual_Cases_Sup=County_Annual_Cases;*/
-/*	County_Annual_Cases=0;*/
-/*	State_Annual_Cases_Sup=State_Annual_Cases;*/
-/*	State_Annual_Cases=0;*/
-/*	Suppression='Yes';	end;*/
-/*if Demographic NE 'Missing/Unknown' and Demographic NE 'Other' and County_Annual_Incidence=. then do;*/
-/*	County_Annual_Cases_Sup=County_Annual_Cases;*/
-/*	County_Annual_Cases=0;*/
-/*	Suppression='Yes';	end;*/
-/*Demographic_Group='Race';*/
-/*run;*/
+/*%suppress_cases(rates_Race);*/
+/*%secondary_suppress(rates_Race);*/
 
-%suppress_cases(rates_Race);
-%secondary_suppress (rates_Race);
-
-data rates_Race;
-set rates_Race;
-Demographic_Group='Race';
+proc delete data=work.agg_Race work.agg_Race_state;
 run;
-
 
 
 /*Combine*/
@@ -1660,6 +1966,106 @@ run;
 data demographic_simple;
 format Demographic $45.;
 set rates_AgeGroup rates_GENDER rates_HISPANIC rates_Race;
+run;
+
+
+data demographic_simple;
+set demographic_simple;
+format County_Demo_Annual_Incidence 10.1;
+County_Demo_Annual_Incidence=round(County_Demo_Annual_Cases/Population_County*100000, .1);
+pop_lt500_suppressed=0;
+County_Annual_Cases_char=put(County_Demo_Annual_Cases, 10.);
+if Demographic NE 'Missing/Unknown' and Demographic NE '' and Demographic NE 'Other' and State_Annual_Incidence=. then do;
+	pop_lt500_suppressed=County_Demo_Annual_Cases;
+	County_Demo_Annual_Cases=0;
+	County_Annual_Cases_char='Suppressed';
+	end;
+if Demographic NE 'Missing/Unknown' and Demographic NE '' and Demographic NE 'Other' and County_Demo_Annual_Incidence=. then do;
+	pop_lt500_suppressed=County_Demo_Annual_Cases;
+	County_Demo_Annual_Cases=0;
+	County_Annual_Cases_char='Suppressed';
+	end;
+run;
+
+proc sort data=demographic_simple;
+  by Year County_substr Disease Population_County/* County_Annual_Cases_Sup*/;
+run;
+
+data SecondLowestPopTable(keep=Year County_substr Disease SecondLowestPop);
+set demographic_simple;
+SecondLowestPop=Demographic;
+by Year County_substr Disease;
+if first.Disease then Marker=0;
+  Marker+1;
+if Marker = 2;
+drop Marker;
+run;
+
+proc sql;
+create table demographic_simple as
+select a.*, b.*
+from demographic_simple a left join SecondLowestPopTable b
+		on a.Year=b.Year and a.County_substr=b.County_substr and a.Disease=b.Disease;
+
+
+proc sql;
+create table suppress_le500 as
+select Year, County_substr, Disease,
+	'Yes' as pop_lt500,
+	sum(pop_lt500_suppressed) as suppressed_total
+from demographic_simple
+group by Year, County_substr, Disease
+having suppressed_total>0;
+
+
+proc sql;
+create table demographic_simple as
+select a.*, b.pop_lt500, b.suppressed_total
+from demographic_simple a left join suppress_le500 b
+		on a.Year=b.Year and a.County_substr=b.County_substr and a.Disease=b.Disease;
+
+data demographic_simple;
+set demographic_simple;
+County_Annual_Cases_char=put(County_Demo_Annual_Cases, 10.);
+if Demographic NE 'Missing/Unknown' and Demographic NE 'Other' and Population_County=. then County_Annual_Cases_char='Suppressed';
+if pop_lt500='Yes' and Demographic=SecondLowestPop then do;
+	County_Demo_Annual_Cases=0;
+	County_Annual_Cases_char='Suppressed';
+	end;
+	else if pop_lt500='' then pop_lt500='No';
+drop SecondLowestPop pop_lt500_suppressed;
+run;
+
+/* Suppress all demographics when cases for the county-year-disease are <=5 */
+data demographic_simple;
+set demographic_simple;
+/*if 0 < Cases_County_Annual le 5 and Demographic ne 'Total Suppressed' and suppressed_total=. then suppressed_total=0;*/
+/*if 0 < Cases_County_Annual le 5 and Demographic ne 'Total Suppressed' then do;*/
+if 0 < Cases_County_Annual le 5 and suppressed_total=. then suppressed_total=0;
+if 0 < Cases_County_Annual le 5 then do;
+	County_Demo_Annual_Cases=0;
+	County_Demo_Annual_Incidence=.;
+	suppressed_total=suppressed_total+Cases_County_Annual;
+	County_Annual_Cases_char='Suppressed';
+	end;
+run;
+
+/*Add suppressed case totals*/
+proc sql;
+create table demo_suppress as
+select Year, County_substr, Disease, Disease_Group, Cases_County_Annual, Demographic_Group, 
+	'Total Suppressed' as Demographic, 
+	max(suppressed_total) as County_Demo_Annual_Cases,
+	put(calculated County_Demo_Annual_Cases, 10.) as County_Annual_Cases_char
+from demographic_simple
+where County_Annual_Cases_char='Suppressed'
+group by Year, County_substr, Disease, Disease_Group, Cases_County_Annual, Demographic_Group;
+
+data demographic_simple;
+set demographic_simple demo_suppress;
+run;
+proc sort data=demographic_simple;
+by Year County_substr Disease Demographic_Group Demographic;
 run;
 
 /*proc export data=demographic_simple*/
@@ -1683,16 +2089,22 @@ run;
 proc sql;
 create table agg_GENDERXAge as
 select Year, County_substr, Disease, Disease_Group, Demographic, Demographic2,
-	count(distinct CASE_ID) as County_Annual_Cases
+	count(distinct CASE_ID) as County_Demo_Annual_Cases
 from agg_GENDERXAge
 group by Year, County_substr, Disease, Disease_Group, Demographic, Demographic2
 order by Year desc, County_substr, Disease, Demographic, Demographic2;
 
 proc sql;
+create table agg_GENDERXAge as
+select a.*, b.Cases_County_Annual
+from agg_GENDERXAge a left join agg_annual b
+	on a.Year=b.year and a.County_substr=b.County_substr and a.Disease=b.Disease;
+
+proc sql;
 create table agg_GENDERXAge_state as
 select
 	Year, Disease, Demographic, Demographic2,
-	sum(County_Annual_Cases) as State_Annual_Cases
+	sum(County_Demo_Annual_Cases) as State_Annual_Cases
 from agg_GENDERXAge
 group by Year, Disease, Demographic, Demographic2
 order by Year desc, Disease, Demographic, Demographic2;
@@ -1714,7 +2126,7 @@ from agg_GENDERXAge a left join demo_state_pops_sup b
 proc sql;
 create table rates_GENDERXAge as
 select
-	Year, County_substr, Disease, Disease_Group, Demographic, Demographic2, County_Annual_Cases, State_Annual_Cases,
+	Year, County_substr, Disease, Disease_Group, Demographic, Demographic2, Cases_County_Annual, County_Demo_Annual_Cases, State_Annual_Cases,
 	case
 			when Demographic='Female' and Demographic2='0-12' then female_0_12
 			when Demographic='Female' and Demographic2='13-17' then female_13_17
@@ -1742,7 +2154,7 @@ proc sql;
 create table rates_GENDERXAge as
 select
 	Year, County_substr, Disease, Disease_Group, Demographic, Demographic2,
-	State_Annual_Cases, State_Annual_Incidence, County_Annual_Cases, Population_State,
+	State_Annual_Cases, State_Annual_Incidence, Cases_County_Annual, County_Demo_Annual_Cases, Population_State,
 	case
 			when Demographic='Female' and Demographic2='0-12' then female_0_12
 			when Demographic='Female' and Demographic2='13-17' then female_13_17
@@ -1756,32 +2168,16 @@ select
 			when Demographic='Male' and Demographic2='25-49' then male_25_49
 			when Demographic='Male' and Demographic2='50-64' then male_50_64
 			when Demographic='Male' and Demographic2='65+' then male_65GE
-		end as Population_County
+		end as Population_County,
+		'Gender by Age Group' as Demographic_Group
 from rates_GENDERXAge
 order by Year desc, County_substr, Disease, Demographic, Demographic2;
 
-data rates_GENDERXAge;
-set rates_GENDERXAge;
-format County_Annual_Incidence 10.1;
-County_Annual_Incidence=County_Annual_Cases/Population_County*100000;
-County_Annual_Cases_Sup=0;
-State_Annual_Cases_Sup=0;
-/*format Suppression $3.;*/
-/*Suppression='No';*/
-if Demographic NE '' and Demographic2 NE 'Missing/Unknown' and State_Annual_Incidence=. then do;
-	County_Annual_Cases_Sup=County_Annual_Cases;
-	County_Annual_Cases=0;
-	State_Annual_Cases_Sup=State_Annual_Cases;
-	State_Annual_Cases=0; State_Annual_Incidence=0;
-	/*Suppression='Yes';*/	end;
-if Demographic NE '' and Demographic2 NE 'Missing/Unknown' and County_Annual_Incidence=. then do;
-	County_Annual_Cases_Sup=County_Annual_Cases;
-	County_Annual_Cases=0;
-	/*Suppression='Yes';*/	end;
-Demographic_Group='Gender by Age Group';
-run;
+/*%suppress_cases_mult(rates_GENDERXAge);*/
+/*%secondary_suppress_mult(rates_GENDERXAge);*/
 
-%secondary_suppress_mult (rates_GENDERXAge);
+proc delete data=work.agg_GENDERXAge work.agg_GENDERXAge_state;
+run;
 
 /*proc export data=rates_GENDERXAge*/
 /*    outfile="T:\Tableau\NCD3 2.0\NCD3 2.0 Output\Tableau Data Sources\2-1-24_data_GENDERXAge.xlsx"*/
@@ -1797,16 +2193,22 @@ proc sql;
 create table agg_GENDERXRace as
 select Year, County_substr, Disease, Disease_Group,
 	GENDER as Demographic length=45, Race as Demographic2 length=45,
-	count(distinct CASE_ID) as County_Annual_Cases
+	count(distinct CASE_ID) as County_Demo_Annual_Cases
 from demoInput
 group by Year, County_substr, Disease, Disease_Group, Demographic, Demographic2
 order by Year desc, County_substr, Disease, Demographic, Demographic2;
 
 proc sql;
+create table agg_GENDERXRace as
+select a.*, b.Cases_County_Annual
+from agg_GENDERXRace a left join agg_annual b
+	on a.Year=b.year and a.County_substr=b.County_substr and a.Disease=b.Disease;
+
+proc sql;
 create table agg_GENDERXRace_state as
 select
 	Year, Disease, Demographic, Demographic2,
-	sum(County_Annual_Cases) as State_Annual_Cases
+	sum(County_Demo_Annual_Cases) as State_Annual_Cases
 from agg_GENDERXRace
 group by Year, Disease, Demographic, Demographic2
 order by Year desc, Disease, Demographic, Demographic2;
@@ -1828,7 +2230,7 @@ from agg_GENDERXRace a left join demo_state_pops_sup b
 proc sql;
 create table rates_GENDERXRace as
 select
-	Year, County_substr, Disease, Disease_Group, Demographic, Demographic2, County_Annual_Cases, State_Annual_Cases,
+	Year, County_substr, Disease, Disease_Group, Demographic, Demographic2, Cases_County_Annual, County_Demo_Annual_Cases, State_Annual_Cases,
 	case
 			when Demographic='Female' and Demographic2='American Indian Alaskan Native'
 				then female_ai_an
@@ -1908,7 +2310,7 @@ proc sql;
 create table rates_GENDERXRace as
 select
 	Year, County_substr, Disease, Disease_Group, Demographic, Demographic2, Population_State,
-	State_Annual_Cases, State_Annual_Incidence, County_Annual_Cases,
+	State_Annual_Cases, State_Annual_Incidence, Cases_County_Annual, County_Demo_Annual_Cases,
 	case
 			when Demographic='Female' and Demographic2='American Indian Alaskan Native'
 				then female_ai_an
@@ -1973,37 +2375,16 @@ select
 			when Demographic='Male' and Demographic2='White' and Disease='Influenza, pediatric death'
 				then male_white_age_0_17
 
-		end as Population_County
+		end as Population_County,
+		'Gender by Race' as Demographic_Group
 from rates_GENDERXRace
 order by Year desc, County_substr, Disease, Demographic, Demographic2;
 
-data rates_GENDERXRace;
-set rates_GENDERXRace;
-format County_Annual_Incidence 10.1;
-County_Annual_Incidence=County_Annual_Cases/Population_County*100000;
-County_Annual_Cases_Sup=0;
-State_Annual_Cases_Sup=0;
-/*format Suppression $3.;*/
-/*Suppression='No';*/
-if Demographic NE '' and Demographic2 NE 'Missing/Unknown' and Demographic2 NE 'Other'
-		and State_Annual_Incidence=. then do;
-	County_Annual_Cases_Sup=County_Annual_Cases;
-	County_Annual_Cases=0;
-	State_Annual_Cases_Sup=State_Annual_Cases;
-	State_Annual_Cases=0;
-/*	Suppression='Yes';*/
-		end;
-if Demographic NE '' and Demographic2 NE 'Missing/Unknown' and Demographic2 NE 'Other'
-		and County_Annual_Incidence=. then do;
-	County_Annual_Cases_Sup=County_Annual_Cases;
-	County_Annual_Cases=0;
-/*	Suppression='Yes';*/
-		end;
-Demographic_Group='Gender by Race';
+/*%suppress_cases_mult(rates_GENDERXRace);*/
+/*%secondary_suppress_mult (rates_GENDERXRace);*/
+
+proc delete data=work.agg_GENDERXRace work.agg_GENDERXRace_state;
 run;
-
-%secondary_suppress_mult (rates_GENDERXRace);
-
 
 /*Gender X HISPANIC*/
 
@@ -2011,16 +2392,22 @@ proc sql;
 create table agg_GENDERXHISPANIC as
 select Year, County_substr, Disease, Disease_Group,
 	GENDER as Demographic, HISPANIC as Demographic2,
-	count(distinct CASE_ID) as County_Annual_Cases
+	count(distinct CASE_ID) as County_Demo_Annual_Cases
 from demoInput
 group by Year, County_substr, Disease, Disease_Group, Demographic, Demographic2
 order by Year desc, County_substr, Disease, Demographic, Demographic2;
 
 proc sql;
+create table agg_GENDERXHISPANIC as
+select a.*, b.Cases_County_Annual
+from agg_GENDERXHISPANIC a left join agg_annual b
+	on a.Year=b.year and a.County_substr=b.County_substr and a.Disease=b.Disease;
+
+proc sql;
 create table agg_GENDERXHISPANIC_state as
 select
 	Year, Disease, Demographic, Demographic2,
-	sum(County_Annual_Cases) as State_Annual_Cases
+	sum(County_Demo_Annual_Cases) as State_Annual_Cases
 from agg_GENDERXHISPANIC
 group by Year, Disease, Demographic, Demographic2
 order by Year desc, Disease, Demographic, Demographic2;
@@ -2042,7 +2429,7 @@ from agg_GENDERXHISPANIC a left join demo_state_pops_sup b
 proc sql;
 create table rates_GENDERXHISPANIC as
 select
-	Year, County_substr, Disease, Disease_Group, Demographic, Demographic2, County_Annual_Cases, State_Annual_Cases,
+	Year, County_substr, Disease, Disease_Group, Demographic, Demographic2, Cases_County_Annual, County_Demo_Annual_Cases, State_Annual_Cases,
 	case
 			when Demographic='Female' and Demographic2='Hispanic' then female_hisp
 			when Demographic='Female' and Demographic2='Non-Hispanic' then female_nonhisp
@@ -2073,7 +2460,7 @@ proc sql;
 create table rates_GENDERXHISPANIC as
 select
 	Year, County_substr, Disease, Disease_Group, Demographic, Demographic2,
-	State_Annual_Cases, State_Annual_Incidence, County_Annual_Cases, Population_State,
+	State_Annual_Cases, State_Annual_Incidence, Cases_County_Annual, County_Demo_Annual_Cases, Population_State,
 	case
 			when Demographic='Female' and Demographic2='Hispanic' then female_hisp
 			when Demographic='Female' and Demographic2='Non-Hispanic' then female_nonhisp
@@ -2090,34 +2477,16 @@ select
 			when Demographic='Male' and Demographic2='Hispanic' and Disease='Influenza, pediatric death' then male_hisp_age_0_17
 			when Demographic='Male' and Demographic2='Non-Hispanic' and Disease='Influenza, pediatric death' then male_nonhisp_age_0_17
 
-		end as Population_County
+		end as Population_County,
+		'Gender by Ethnicity' as Demographic_Group
 from rates_GENDERXHISPANIC
 order by Year desc, County_substr, Disease, Demographic, Demographic2;
 
-data rates_GENDERXHISPANIC;
-set rates_GENDERXHISPANIC;
-format County_Annual_Incidence 10.1;
-County_Annual_Incidence=County_Annual_Cases/Population_County*100000;
-County_Annual_Cases_Sup=0;
-State_Annual_Cases_Sup=0;
-/*format Suppression $3.;*/
-/*Suppression='No';*/
-if Demographic NE '' and Demographic2 NE 'Missing/Unknown' and State_Annual_Incidence=. then do;
-	County_Annual_Cases_Sup=County_Annual_Cases;
-	County_Annual_Cases=0;
-	State_Annual_Cases_Sup=State_Annual_Cases;
-	State_Annual_Cases=0;
-/*	Suppression='Yes';*/
-		end;
-if Demographic NE '' and Demographic2 NE 'Missing/Unknown' and County_Annual_Incidence=. then do;
-	County_Annual_Cases_Sup=County_Annual_Cases;
-	County_Annual_Cases=0;
-/*	Suppression='Yes';*/
-		end;
-Demographic_Group='Gender by Ethnicity';
-run;
+/*%suppress_cases_mult(rates_GENDERXHISPANIC);*/
+/*%secondary_suppress_mult(rates_GENDERXHISPANIC);*/
 
-%secondary_suppress_mult (rates_GENDERXHISPANIC);
+proc delete data=work.agg_GENDERXHISPANIC work.agg_GENDERXHISPANIC_state;
+run;
 
 
 /*Race X Age*/
@@ -2131,16 +2500,22 @@ run;
 proc sql;
 create table agg_RaceXAge as
 select Year, County_substr, Disease, Disease_Group, Demographic, Demographic2,
-	count(distinct CASE_ID) as County_Annual_Cases
+	count(distinct CASE_ID) as County_Demo_Annual_Cases
 from agg_RaceXAge
 group by Year, County_substr, Disease, Disease_Group, Demographic, Demographic2
 order by Year desc, County_substr, Disease, Demographic, Demographic2;
 
 proc sql;
+create table agg_RaceXAge as
+select a.*, b.Cases_County_Annual
+from agg_RaceXAge a left join agg_annual b
+	on a.Year=b.year and a.County_substr=b.County_substr and a.Disease=b.Disease;
+
+proc sql;
 create table agg_RaceXAge_state as
 select
 	Year, Disease, Demographic, Demographic2,
-	sum(County_Annual_Cases) as State_Annual_Cases
+	sum(County_Demo_Annual_Cases) as State_Annual_Cases
 from agg_RaceXAge
 group by Year, Disease, Demographic, Demographic2
 order by Year desc, Disease, Demographic, Demographic2;
@@ -2162,7 +2537,7 @@ from agg_RaceXAge a left join demo_state_pops_sup b
 proc sql;
 create table rates_RaceXAge as
 select
-	Year, County_substr, Disease, Disease_Group, Demographic, Demographic2, County_Annual_Cases, State_Annual_Cases,
+	Year, County_substr, Disease, Disease_Group, Demographic, Demographic2, Cases_County_Annual, County_Demo_Annual_Cases, State_Annual_Cases,
 	case
 			when Demographic='American Indian Alaskan Native' and Demographic2='0-12' then ai_an_0_12
 			when Demographic='American Indian Alaskan Native' and Demographic2='13-17' then ai_an_13_17
@@ -2208,7 +2583,7 @@ proc sql;
 create table rates_RaceXAge as
 select
 	Year, County_substr, Disease, Disease_Group, Demographic, Demographic2,
-	State_Annual_Cases, State_Annual_Incidence, County_Annual_Cases, Population_State,
+	State_Annual_Cases, State_Annual_Incidence, Cases_County_Annual, County_Demo_Annual_Cases, Population_State,
 	case
 			when Demographic='American Indian Alaskan Native' and Demographic2='0-12' then ai_an_0_12
 			when Demographic='American Indian Alaskan Native' and Demographic2='13-17' then ai_an_13_17
@@ -2240,39 +2615,15 @@ select
 			when Demographic='White' and Demographic2='25-49' then white_25_49
 			when Demographic='White' and Demographic2='50-64' then white_50_64
 			when Demographic='White' and Demographic2='65+' then white_65GE
-	end as Population_County
+	end as Population_County,
+	'Race by Age' as Demographic_Group
 from rates_RaceXAge
 order by Year desc, County_substr, Disease, Demographic, Demographic2;
 
-/*data rates_RaceXAge;*/
-/*set rates_RaceXAge;*/
-/*format County_Annual_Incidence 10.1;*/
-/*County_Annual_Incidence=County_Annual_Cases/Population_County*100000;*/
-/*County_Annual_Cases_Sup=0;*/
-/*State_Annual_Cases_Sup=0;*/
-/*format Suppression $3.;*/
-/*Suppression='No';*/
-/*if Demographic NE 'Missing/Unknown' and Demographic NE 'Other' and Demographic2 NE 'Missing/Unknown'*/
-/*		and State_Annual_Incidence=. then do;*/
-/*	County_Annual_Cases_Sup=County_Annual_Cases;*/
-/*	County_Annual_Cases=0;*/
-/*	State_Annual_Cases_Sup=State_Annual_Cases;*/
-/*	State_Annual_Cases=0;*/
-/*	Suppression='Yes';	end;*/
-/*if Demographic NE 'Missing/Unknown' and Demographic NE 'Other' and Demographic2 NE 'Missing/Unknown'*/
-/*		and County_Annual_Incidence=. then do;*/
-/*	County_Annual_Cases_Sup=County_Annual_Cases;*/
-/*	County_Annual_Cases=0;*/
-/*	Suppression='Yes';	end;*/
-/*Demographic_Group='Race by Age Group';*/
-/*run;*/
+/*%suppress_cases_mult(rates_RaceXAge);*/
+/*%secondary_suppress_mult(rates_RaceXAge);*/
 
-%suppress_cases_mult(rates_RaceXAge);
-%secondary_suppress_mult(rates_RaceXAge);
-
-data rates_RaceXAge;
-set rates_RaceXAge;
-Demographic_Group='Race by Age Group';
+proc delete data=work.agg_RaceXAge work.agg_RaceXAge_state;
 run;
 
 /*proc export data=rates_RaceXAge*/
@@ -2294,16 +2645,22 @@ run;
 proc sql;
 create table agg_HISPANICXAge as
 select Year, County_substr, Disease, Disease_Group, Demographic, Demographic2,
-	count(distinct CASE_ID) as County_Annual_Cases
+	count(distinct CASE_ID) as County_Demo_Annual_Cases
 from agg_HISPANICXAge
 group by Year, County_substr, Disease, Disease_Group, Demographic, Demographic2
 order by Year desc, County_substr, Disease, Demographic, Demographic2;
 
 proc sql;
+create table agg_HISPANICXAge as
+select a.*, b.Cases_County_Annual
+from agg_HISPANICXAge a left join agg_annual b
+	on a.Year=b.year and a.County_substr=b.County_substr and a.Disease=b.Disease;
+
+proc sql;
 create table agg_HISPANICXAge_state as
 select
 	Year, Disease, Demographic, Demographic2,
-	sum(County_Annual_Cases) as State_Annual_Cases
+	sum(County_Demo_Annual_Cases) as State_Annual_Cases
 from agg_HISPANICXAge
 group by Year, Disease, Demographic, Demographic2
 order by Year desc, Disease, Demographic, Demographic2;
@@ -2325,7 +2682,7 @@ from agg_HISPANICXAge a left join demo_state_pops_sup b
 proc sql;
 create table rates_HISPANICXAge as
 select
-	Year, County_substr, Disease, Disease_Group, Demographic, Demographic2, County_Annual_Cases, State_Annual_Cases,
+	Year, County_substr, Disease, Disease_Group, Demographic, Demographic2, Cases_County_Annual, County_Demo_Annual_Cases, State_Annual_Cases,
 	case
 			when Demographic='Hispanic' and Demographic2='0-12' then hisp_0_12
 			when Demographic='Hispanic' and Demographic2='13-17' then hisp_13_17
@@ -2353,7 +2710,7 @@ proc sql;
 create table rates_HISPANICXAge as
 select
 	Year, County_substr, Disease, Disease_Group, Demographic, Demographic2,
-	State_Annual_Cases, State_Annual_Incidence, County_Annual_Cases, Population_State,
+	State_Annual_Cases, State_Annual_Incidence, Cases_County_Annual, County_Demo_Annual_Cases, Population_State,
 	case
 			when Demographic='Hispanic' and Demographic2='0-12' then hisp_0_12
 			when Demographic='Hispanic' and Demographic2='13-17' then hisp_13_17
@@ -2367,37 +2724,15 @@ select
 			when Demographic='Non-Hispanic' and Demographic2='25-49' then nonhisp_25_49
 			when Demographic='Non-Hispanic' and Demographic2='50-64' then nonhisp_50_64
 			when Demographic='Non-Hispanic' and Demographic2='65+' then nonhisp_65GE
-	end as Population_County
+	end as Population_County,
+	'Ethnicity by Age Group' as Demographic_Group
 from rates_HISPANICXAge
 order by Year desc, County_substr, Disease, Demographic, Demographic2;
 
-/*data rates_HISPANICXAge;*/
-/*set rates_HISPANICXAge;*/
-/*format County_Annual_Incidence 10.1;*/
-/*County_Annual_Incidence=County_Annual_Cases/Population_County*100000;*/
-/*County_Annual_Cases_Sup=0;*/
-/*State_Annual_Cases_Sup=0;*/
-/*format Suppression $3.;*/
-/*Suppression='No';*/
-/*if Demographic NE 'Missing/Unknown' and Demographic2 NE 'Missing/Unknown' and State_Annual_Incidence=. then do;*/
-/*	County_Annual_Cases_Sup=County_Annual_Cases;*/
-/*	County_Annual_Cases=0;*/
-/*	State_Annual_Cases_Sup=State_Annual_Cases;*/
-/*	State_Annual_Cases=0;*/
-/*	Suppression='Yes';	end;*/
-/*if Demographic NE 'Missing/Unknown' and Demographic2 NE 'Missing/Unknown' and County_Annual_Incidence=. then do;*/
-/*	County_Annual_Cases_Sup=County_Annual_Cases;*/
-/*	County_Annual_Cases=0;*/
-/*	Suppression='Yes';	end;*/
-/*Demographic_Group='Ethnicity by Age Group';*/
-/*run;*/
+/*%suppress_cases_mult(rates_HISPANICXAge);*/
+/*%secondary_suppress_mult (rates_HISPANICXAge);*/
 
-%suppress_cases_mult(rates_HISPANICXAge);
-%secondary_suppress_mult (rates_HISPANICXAge);
-
-data rates_HISPANICXAge;
-set rates_HISPANICXAge;
-Demographic_Group='Ethnicity by Age Group';
+proc delete data=work.agg_HISPANICXAge work.agg_HISPANICXAge_state;
 run;
 
 
@@ -2407,16 +2742,22 @@ proc sql;
 create table agg_RaceXHISPANIC as
 select Year, County_substr, Disease, Disease_Group,
 	Race as Demographic format=$45., HISPANIC as Demographic2 format=$45.,
-	count(distinct CASE_ID) as County_Annual_Cases
+	count(distinct CASE_ID) as County_Demo_Annual_Cases
 from demoInput
 group by Year, County_substr, Disease, Disease_Group, Demographic, Demographic2
 order by Year desc, County_substr, Disease, Demographic, Demographic2;
 
 proc sql;
+create table agg_RaceXHISPANIC as
+select a.*, b.Cases_County_Annual
+from agg_RaceXHISPANIC a left join agg_annual b
+	on a.Year=b.year and a.County_substr=b.County_substr and a.Disease=b.Disease;
+
+proc sql;
 create table agg_RaceXHISPANIC_state as
 select
 	Year, Disease, Demographic, Demographic2,
-	sum(County_Annual_Cases) as State_Annual_Cases
+	sum(County_Demo_Annual_Cases) as State_Annual_Cases
 from agg_RaceXHISPANIC
 group by Year, Disease, Demographic, Demographic2
 order by Year desc, Disease, Demographic, Demographic2;
@@ -2438,7 +2779,7 @@ from agg_RaceXHISPANIC a left join demo_state_pops_sup b
 proc sql;
 create table rates_RaceXHISPANIC as
 select
-	Year, County_substr, Disease, Disease_Group, Demographic, Demographic2, County_Annual_Cases, State_Annual_Cases,
+	Year, County_substr, Disease, Disease_Group, Demographic, Demographic2, Cases_County_Annual, County_Demo_Annual_Cases, State_Annual_Cases,
 	case
 			when Demographic='American Indian Alaskan Native' and Demographic2='Hispanic' then hisp_ai_an
 			when Demographic='American Indian Alaskan Native' and Demographic2='Non-Hispanic' then nonhisp_ai_an
@@ -2487,7 +2828,7 @@ proc sql;
 create table rates_RaceXHISPANIC as
 select
 	Year, County_substr, Disease, Disease_Group, Demographic, Demographic2,
-	State_Annual_Cases, State_Annual_Incidence, County_Annual_Cases, Population_State,
+	State_Annual_Cases, State_Annual_Incidence, Cases_County_Annual, County_Demo_Annual_Cases, Population_State,
 	case
 			when Demographic='American Indian Alaskan Native' and Demographic2='Hispanic' then hisp_ai_an
 			when Demographic='American Indian Alaskan Native' and Demographic2='Non-Hispanic' then nonhisp_ai_an
@@ -2522,47 +2863,196 @@ select
 			when Demographic='White' and Demographic2='Hispanic' and Disease='Influenza, pediatric death' then hisp_white_age_0_17
 			when Demographic='White' and Demographic2='Non-Hispanic' and Disease='Influenza, pediatric death' then nonhisp_white_age_0_17
 
-	end as Population_County
+	end as Population_County,
+	'Race by Ethnicity' as Demographic_Group
 from rates_RaceXHISPANIC
 order by Year desc, County_substr, Disease, Demographic, Demographic2;
 
-/*data rates_RaceXHISPANIC;*/
-/*set rates_RaceXHISPANIC;*/
-/*format County_Annual_Incidence 10.1;*/
-/*County_Annual_Incidence=County_Annual_Cases/Population_County*100000;*/
-/*County_Annual_Cases_Sup=0;*/
-/*State_Annual_Cases_Sup=0;*/
-/*format Suppression $3.;*/
-/*Suppression='No';*/
-/*if Demographic NE 'Missing/Unknown' and Demographic NE 'Other' and Demographic2 NE 'Missing/Unknown'*/
-/*		and State_Annual_Incidence=. then do;*/
-/*	County_Annual_Cases_Sup=County_Annual_Cases;*/
-/*	County_Annual_Cases=0;*/
-/*	State_Annual_Cases_Sup=State_Annual_Cases;*/
-/*	State_Annual_Cases=0;*/
-/*	Suppression='Yes';	end;*/
-/*if Demographic NE 'Missing/Unknown' and Demographic NE 'Other' and Demographic2 NE 'Missing/Unknown'*/
-/*		and County_Annual_Incidence=. then do;*/
-/*	County_Annual_Cases_Sup=County_Annual_Cases;*/
-/*	County_Annual_Cases=0;*/
-/*	Suppression='Yes';	end;*/
-/*Demographic_Group='Race by Ethnicity';*/
-/*run;*/
+/*%suppress_cases_mult(rates_RaceXHISPANIC);*/
+/*%secondary_suppress_mult (rates_RaceXHISPANIC);*/
 
-%suppress_cases_mult(rates_RaceXHISPANIC);
-%secondary_suppress_mult (rates_RaceXHISPANIC);
-
-data rates_RaceXHISPANIC;
-set rates_RaceXHISPANIC;
-Demographic_Group='Race by Ethnicity';
+proc delete data=work.agg_RaceXHISPANIC work.agg_RaceXHISPANIC_state;
 run;
 
 
-/*Combine*/
+
+								/*Combine Demographic Cross-tabs Tables*/
 data demographic_multiple;
 format Demographic Demographic2 Demographic_Group $45.;
 set rates_GENDERXAge rates_GENDERXRace rates_GENDERXHISPANIC rates_RaceXAge rates_HISPANICXAge rates_RaceXHISPANIC;
 run;
+
+
+/*If no data, ''; N and IR not shown.
+  If response is present in NC EDSS but not represented in the population file, ''; N shown, IR not shown.
+  If data are present in both files but suppressed due to population denominator, '0'; N and IR are shown as '0';
+	next-lowest subcategory is also shown as '0'.*/
+
+data demographic_multiple;
+set demographic_multiple;
+format County_Demo_Annual_Incidence 10.1;
+County_Demo_Annual_Incidence=round(County_Demo_Annual_Cases/Population_County*100000, .1);
+pop_lt500_suppressed=0;
+County_Annual_Cases_char=put(County_Demo_Annual_Cases, 10.);
+if Demographic NE 'Missing/Unknown' and Demographic NE '' and Demographic NE 'Other'
+	and Demographic2 NE 'Missing/Unknown' and Demographic2 NE '' and Demographic2 NE 'Other' and State_Annual_Incidence=. then do;
+		pop_lt500_suppressed=County_Demo_Annual_Cases;
+		County_Demo_Annual_Cases=0;
+		County_Annual_Cases_char='Suppressed';
+		end;
+if Demographic NE 'Missing/Unknown' and Demographic NE '' and Demographic NE 'Other'
+	and Demographic2 NE 'Missing/Unknown' and Demographic2 NE '' and Demographic2 NE 'Other' and County_Demo_Annual_Incidence=. then do;
+		pop_lt500_suppressed=County_Demo_Annual_Cases;
+		County_Demo_Annual_Cases=0;
+		County_Annual_Cases_char='Suppressed';
+		end;
+run;
+
+proc sort data=demographic_multiple;
+  by Year County_substr Disease Population_County/* County_Annual_Cases_Sup*/;
+run;
+
+data SecondLowestPopTable(keep=Year County_substr Disease SecondLowestPop SecondLowestPop2);
+set demographic_multiple;
+SecondLowestPop=Demographic;
+SecondLowestPop2=Demographic2;
+by Year County_substr Disease;
+if first.Disease then Marker=0;
+  Marker+1;
+if Marker = 2;
+drop Marker;
+run;
+
+proc sql;
+create table demographic_multiple as
+select a.*, b.*
+from demographic_multiple a left join SecondLowestPopTable b
+		on a.Year=b.Year and a.County_substr=b.County_substr and a.Disease=b.Disease;
+
+
+proc sql;
+create table suppress_le500 as
+select Year, County_substr, Disease,
+	'Yes' as pop_lt500,
+	sum(pop_lt500_suppressed) as suppressed_total
+from demographic_multiple
+group by Year, County_substr, Disease
+having suppressed_total>0;
+
+
+proc sql;
+create table demographic_multiple as
+select a.*, b.*
+from demographic_multiple a left join suppress_le500 b
+		on a.Year=b.Year and a.County_substr=b.County_substr and a.Disease=b.Disease;
+
+data demographic_multiple;
+set demographic_multiple;
+if pop_lt500='Yes' and Demographic=SecondLowestPop and Demographic2=SecondLowestPop2 then do;
+	County_Demo_Annual_Cases=0;
+	County_Demo_Annual_Incidence=.;
+	County_Annual_Cases_char='Suppressed';
+	end;
+	else if pop_lt500='' then pop_lt500='No';
+drop SecondLowestPop SecondLowestPop2 pop_lt500_suppressed;
+run;
+
+
+/*If cases <= 5 for year-county-disease-demographic, then suppress those cases, 
+	and also suppress second lowest case aggregate if not already included;
+	total cases suppressed are added to 'Suppressed' subgroup*/
+proc sort data=demographic_multiple;
+  by Year County_substr Disease County_Demo_Annual_Cases;
+run;
+
+data SecondLowestCasesTable(keep=Year County_substr Disease SecondLowestCases SecondLowestCaseDemo1 SecondLowestCaseDemo2);
+set demographic_multiple;
+where County_Demo_Annual_Cases ne 0;
+SecondLowestCases=County_Demo_Annual_Cases;
+SecondLowestCaseDemo1=Demographic;
+SecondLowestCaseDemo2=Demographic2;
+by Year County_substr Disease;
+if first.Disease then Marker=0;
+  Marker+1;
+if Marker = 2;
+drop Marker;
+run;
+
+proc sql;
+create table demographic_multiple as
+select a.*, b.*
+from demographic_multiple a left join SecondLowestCasesTable b
+		on a.Year=b.Year and a.County_substr=b.County_substr and a.Disease=b.Disease;
+
+proc sql;
+create table county_demo_le5 as
+select Year, County_substr, Disease, Demographic_Group,
+	sum(County_Demo_Annual_Cases) as demo_cases_le5_count,
+	case when min(County_Demo_Annual_Cases) le 5 then 'Yes' else 'No'
+	end as demo_cases_le5
+from demographic_multiple
+where 0 < County_Demo_Annual_Cases le 5 and Demographic ne ''
+/*where 0 < County_Demo_Annual_Cases le 5 and Demographic NE 'Missing/Unknown' and Demographic NE '' and Demographic NE 'Other'*/
+/*	and Demographic2 NE 'Missing/Unknown' and Demographic2 NE '' and Demographic2 NE 'Other'*/
+group by Year, County_substr, Disease, Demographic_Group;
+
+proc sql;
+create table demographic_multiple as
+select a.*, b.demo_cases_le5_count, b.demo_cases_le5
+from demographic_multiple a left join county_demo_le5 b
+		on a.Year=b.Year and a.County_substr=b.County_substr and a.Disease=b.Disease and a.Demographic_Group=b.Demographic_Group;
+
+
+data demographic_multiple(drop=SecondLowestCases SecondLowestCaseDemo1 SecondLowestCaseDemo2 demo_cases_le5 demo_cases_le5_count);
+set demographic_multiple;
+/*if demo_cases_le5='Yes' and suppressed_total=. then suppressed_total=0;*/
+if County_Demo_Annual_Cases le 5 and suppressed_total=. then suppressed_total=0;
+if demo_cases_le5='Yes' then suppressed_total=suppressed_total+demo_cases_le5_count+SecondLowestCases;
+/*if County_Demo_Annual_Cases le 5 then */
+if 0 < County_Demo_Annual_Cases le 5 then do;
+/*	suppressed_total=suppressed_total+County_Demo_Annual_Cases+SecondLowestCases;*/
+	County_Demo_Annual_Cases=0;
+	County_Demo_Annual_Incidence=.;
+	County_Annual_Cases_char='Suppressed';
+	end;
+if demo_cases_le5='Yes' and Demographic=SecondLowestCaseDemo1 and Demographic2=SecondLowestCaseDemo2 then do;
+	County_Demo_Annual_Cases=0;
+	County_Demo_Annual_Incidence=.;
+	County_Annual_Cases_char='Suppressed';
+	end;
+run;
+
+
+/* Suppress all demographics when cases for the county-year-disease are <=5 */
+data demographic_multiple;
+set demographic_multiple;
+if 0 < Cases_County_Annual le 5 and suppressed_total=. then suppressed_total=0;
+if 0 < Cases_County_Annual le 5 then do;
+	County_Demo_Annual_Cases=0;
+	County_Demo_Annual_Incidence=.;
+	suppressed_total=suppressed_total+Cases_County_Annual;
+	County_Annual_Cases_char='Suppressed';
+	end;
+run;
+
+/*Add suppressed case totals*/
+proc sql;
+create table demo_suppress as
+select Year, County_substr, Disease, Disease_Group, Cases_County_Annual, Demographic_Group, 
+	'Total Suppressed' as Demographic, 'Total Suppressed' as Demographic2,
+	max(suppressed_total) as County_Demo_Annual_Cases,
+	put(calculated County_Demo_Annual_Cases, 10.) as County_Annual_Cases_char
+from demographic_multiple
+where County_Annual_Cases_char='Suppressed'
+group by Year, County_substr, Disease, Disease_Group, Cases_County_Annual, Demographic_Group;
+
+data demographic_multiple;
+set demographic_multiple demo_suppress;
+run;
+proc sort data=demographic_multiple;
+by Year County_substr Disease Demographic_Group Demographic;
+run;
+
 
 /*proc export data=demographic_multiple*/
 /*    outfile="T:\Tableau\NCD3 2.0\NCD3 2.0 Output\Tableau Data Sources\rates_cd_demographics_multiple.xlsx"*/
@@ -2572,24 +3062,83 @@ run;
 /*run;*/
 
 
+/*Remove IR for infant populations*/
 data demographic_all;
 format Demographic Demographic2 Demographic_Group $45.;
 set demographic_simple demographic_multiple;
+County_Demo_Annual_Incidence=round(County_Demo_Annual_Incidence, .1);
+State_Annual_Incidence=round(State_Annual_Incidence, .1);
 if Disease='Botulism - infant' or Disease='Hepatitis B - Perinatally Acquired' or Disease='Syphilis - Congenital Syphilis' then do;
-	County_Annual_Incidence=.; State_Annual_Incidence=.; end;
+	County_Demo_Annual_Incidence=.;
+	State_Annual_Incidence=.;
+	end;
 run;
+
+/*If only one bar is shown in figure for year-county-disease-demographic,
+	then suppress number of cases and number suppressed for that demographic*/
+/*Suppress number of cases when only one bar is shown in figure*/
+proc sql;
+create table count_bars_shown as
+select Year, County_substr, Disease, Demographic_Group,
+	count(Demographic) as n_bars_shown/*,
+	max(suppressed_total) as suppressed_total*/
+from demographic_all
+where Demographic ne 'Total Suppressed' and Demographic2 ne 'Total Suppressed'
+group by Year, County_substr, Disease, Demographic_Group;
+
+proc sql;
+create table demographic_all as
+select a.*, b.n_bars_shown
+from demographic_all a left join count_bars_shown b
+		on a.Year=b.Year and a.County_substr=b.County_substr and a.Disease=b.Disease and a.Demographic_Group=b.Demographic_Group;
+
+data demographic_all(drop=n_bars_shown pop_lt500);
+set demographic_all;
+if /*pop_lt500='Yes' and*/ n_bars_shown=1 and (Demographic='Total Suppressed' or Demographic2='Total Suppressed') then do;
+	County_Demo_Annual_Cases=0;
+/*	County_Demo_Annual_Incidence=.;*/
+	County_Annual_Cases_char='Suppressed';
+	end;
+run;
+
+
+/*If suppressed total = number of bars shown in figure for year-county-disease-demographic,
+	then remove total number suppressed for that demographic*/
+proc sql;
+create table count_bars_suppressed as
+select Year, County_substr, Disease, Demographic_Group,
+	count(Demographic) as n_bars_suppressed
+from demographic_all
+where County_Annual_Cases_char='Suppressed'
+group by Year, County_substr, Disease, Demographic_Group;
+
+proc sql;
+create table demographic_all as
+select a.*, b.n_bars_suppressed
+from demographic_all a left join count_bars_suppressed b
+		on a.Year=b.Year and a.County_substr=b.County_substr and a.Disease=b.Disease and a.Demographic_Group=b.Demographic_Group;
+
+data demographic_all(drop=n_bars_suppressed);
+set demographic_all;
+if (Demographic='Total Suppressed' or Demographic2='Total Suppressed')
+		and put(n_bars_suppressed, 3.)=County_Annual_Cases_char then do;
+	County_Demo_Annual_Cases=0;
+	County_Annual_Cases_char='Suppressed';
+	end;
+run;
+
 
 /*Add 'All Counties' option to Counties dropdown*/
 proc sort data=demographic_all out=AllCounties
-	(drop=County_substr County_Annual_Cases County_Annual_Cases_Sup County_Annual_Incidence
+	(drop=County_substr Cases_County_Annual County_Demo_Annual_Cases County_Demo_Annual_Incidence
 		Population_County County_Annual_Cases_char) nodupkey ;
 by Year Disease Demographic_Group Demographic;
 run;
 data AllCounties;
 set AllCounties;
 County_substr='All Counties';
-County_Annual_Cases=State_Annual_Cases;
-County_Annual_Cases_Sup=0;
+County_Demo_Annual_Cases=State_Annual_Cases;
+/*County_Annual_Cases_Sup=0;*/
 Population_County=Population_State;
 County_Annual_Cases_char=put(State_Annual_Cases, 10.);
 run;
@@ -2598,6 +3147,16 @@ data demographic_all;
 set demographic_all AllCounties;
 run;
 
+proc sort data=demographic_all;
+by Year County_substr Disease Demographic_Group Demographic;
+run;
+
+
+
+/*libname interim 'T:\Tableau\NCD3 2.0\NCD3 2.0 Output\SAS Output\Interim';*/
+/*data interim.demographic_all; */
+/*set demographic_all;*/
+/*run;*/
 
 /*proc export data=demographic_all*/
 /*    outfile="T:\Tableau\NCD3 2.0\NCD3 2.0 Output\Tableau Data Sources\rates_cd_demographics.xlsx"*/
