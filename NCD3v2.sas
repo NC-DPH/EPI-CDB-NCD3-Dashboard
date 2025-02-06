@@ -69,8 +69,8 @@ proc import datafile='T:\Tableau\NCD3 2.0\NCD3 2.0 Output\Tableau Data Sources\C
 																			/*Enteric*/
 
 
-/*The variable name for ìDate of initial report to public healthî in the DD tables is called ìRPTI_SOURCE_DT_SUBMITTEDî.*/
-/*It is found in the ìAdmin_question_package_addlî table.*/
+/*The variable name for ‚ÄúDate of initial report to public health‚Äù in the DD tables is called ‚ÄúRPTI_SOURCE_DT_SUBMITTED‚Äù.*/
+/*It is found in the ‚ÄúAdmin_question_package_addl‚Äù table.*/
 
 proc sql;
 create table CASE_COMBO as
@@ -86,7 +86,7 @@ where s.CLASSIFICATION_CLASSIFICATION in ("Confirmed", "Probable")
 quit;
 
 /*Join with State variable for subsetting use in a later step. The state field is in the CASE_PHI table.*/
-/*ìSuspectî classification removed for all Enteric diseases except Shigella toxin producing E. coli */
+/*‚ÄúSuspect‚Äù classification removed for all Enteric diseases except Shigella toxin producing E. coli */
 
 proc sql;
 create table CASE_COMBO_sub as
@@ -146,7 +146,7 @@ where s.CLASSIFICATION_CLASSIFICATION in ("Confirmed", "Probable")
 	and s.REPORT_TO_CDC = 'Yes';
 quit;
 
-/*Removed the REPORT_TO_CDC=îYesî filter for Carbapenem-resistant Enterobacteriaceae*/
+/*Removed the REPORT_TO_CDC=‚ÄùYes‚Äù filter for Carbapenem-resistant Enterobacteriaceae*/
 proc sql;
 create table CASE_COMBO_sub as
 select s.*, /*a.State*/a.EVENT_STATE, b.RPTI_SOURCE_DT_SUBMITTED
@@ -248,7 +248,7 @@ where s.CLASSIFICATION_CLASSIFICATION in ("Confirmed", "Probable")
 	and s.REPORT_TO_CDC = 'Yes';
 quit;
 
-/*Removed the REPORT_TO_CDC=îYesî filter for Influenza, adult death (18 years of age or more)*/
+/*Removed the REPORT_TO_CDC=‚ÄùYes‚Äù filter for Influenza, adult death (18 years of age or more)*/
 proc sql;
 create table CASE_COMBO_sub as
 select s.*, /*a.State*/a.EVENT_STATE, b.RPTI_SOURCE_DT_SUBMITTED
@@ -339,7 +339,7 @@ quit;
 
 /*LOW INCIDENCE STDS*/
 
-/*Removed the REPORT_TO_CDC=îYesî filter for Granuloma inguinale, Lymphogranuloma venereum,
+/*Removed the REPORT_TO_CDC=‚ÄùYes‚Äù filter for Granuloma inguinale, Lymphogranuloma venereum,
 	Nongonococcal urethritis, Pelvic inflammatory disease*/
 proc sql;
 create table STD as
@@ -471,7 +471,7 @@ where s.CLASSIFICATION_CLASSIFICATION in ("Confirmed", "Probable")
 	and s.REPORT_TO_CDC = 'Yes';
 quit;
 
-/*Removed the REPORT_TO_CDC=îYesî filter for Acute flaccid myelitis, Pneumococcal meningitis, Vaccinia;*/
+/*Removed the REPORT_TO_CDC=‚ÄùYes‚Äù filter for Acute flaccid myelitis, Pneumococcal meningitis, Vaccinia;*/
 proc sql;
 create table CASE_COMBO_sub as
 select s.*, /*a.State*/a.EVENT_STATE, b.RPTI_SOURCE_DT_SUBMITTED
@@ -525,7 +525,7 @@ where s.CLASSIFICATION_CLASSIFICATION in ("Confirmed", "Probable")
 	and s.REPORT_TO_CDC = 'Yes';
 quit;
 
-/*Removed the REPORT_TO_CDC=îYesî filter for Creutzfeldt-Jakob Disease*/
+/*Removed the REPORT_TO_CDC=‚ÄùYes‚Äù filter for Creutzfeldt-Jakob Disease*/
 proc sql;
 create table CASE_COMBO_sub as
 select s.*, /*a.State*/a.EVENT_STATE, b.RPTI_SOURCE_DT_SUBMITTED
