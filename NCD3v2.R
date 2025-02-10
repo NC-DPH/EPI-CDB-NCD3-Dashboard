@@ -7,24 +7,24 @@ pacman::p_load(
 )
 
 # import datasets, and only selected columns so loads faster. may take up to 1 min for main case file. 
-case_phi <- read_sas('C:/Users/dgu/Documents/My SAS Files/EDSS Missing/data4/case_phi.sas7bdat', col_select = c(1,16))
-case <- read_sas('C:/Users/dgu/Documents/My SAS Files/EDSS Missing/data4/case.sas7bdat', col_select = c(1,3:6, 8:10, 12, 14, 20:33, 35))
-Admin_question_package_addl <- read_sas('C:/Users/dgu/Documents/My SAS Files/EDSS Missing/data4/Admin_question_package_addl.sas7bdat', col_select = c(2,6))
+case_phi <- read_sas('Z:/20241101/case_phi.sas7bdat', col_select = c(1,16))
+case <- read_sas('Z:/20241101/case.sas7bdat', col_select = c(1,3:6, 8:10, 12, 14, 20:33, 35))
+Admin_question_package_addl <- read_sas('Z:/20241101/Admin_question_package_addl.sas7bdat', col_select = c(2,6))
 
 # functions
 create_case_combo <- function(classification_user, type_user, report_to_cdc_user = NULL) {
   df <- case %>% 
-    filter(CLASSIFICATION_CLASSIFICATION %in% classification_user,
+    filter(if (is.null(classification_user)) TRUE else CLASSIFICATION_CLASSIFICATION %in% classification_user,
            TYPE %in% type_user,
-           if (!is.null(report_to_cdc_user)) REPORT_TO_CDC %in% report_to_cdc_user else TRUE) %>% 
+           if (is.null(report_to_cdc_user)) TRUE else REPORT_TO_CDC %in% report_to_cdc_user) %>% 
     left_join(case_phi, by = "CASE_ID") %>% 
     left_join(Admin_question_package_addl, by = "CASE_ID")
   return(df)
 }
 
-create_final_df <- function(dataset, end_date, user_disease_name) {
+create_final_df <- function(dataset, end_date=today(), user_disease_name, status_user="Closed") {
   df <- dataset %>% 
-    select(OWNING_JD, TYPE, TYPE_DESC, CLASSIFICATION_CLASSIFICATION, CASE_ID, MMWR_YEAR, MMWR_DATE_BASIS, AGE, GENDER, HISPANIC, RACE1, RACE2, RACE3, RACE4, RACE5, RACE6, SYMPTOM_ONSET_DATE, DISEASE_ONSET_QUALIFIER, RPTI_SOURCE_DT_SUBMITTED, CREATE_DT, STATUS, STATE) %>% 
+    select(OWNING_JD, TYPE, TYPE_DESC, CLASSIFICATION_CLASSIFICATION, CASE_ID, MMWR_YEAR, MMWR_DATE_BASIS, AGE, GENDER, HISPANIC, RACE1, RACE2, RACE3, RACE4, RACE5, RACE6, SYMPTOM_ONSET_DATE, DISEASE_ONSET_QUALIFIER, RPTI_SOURCE_DT_SUBMITTED, CREATE_DT, STATUS, CURRENT_STATE) %>% 
     mutate(MMWR_YEAR = as.numeric(MMWR_YEAR),
            EVENT_DATE = case_when(
              !is.na(MMWR_DATE_BASIS) ~ MMWR_DATE_BASIS,
@@ -37,8 +37,8 @@ create_final_df <- function(dataset, end_date, user_disease_name) {
            Disease_Group = user_disease_name
     ) %>% 
     filter(EVENT_DATE >= as.Date("2015-01-01") & EVENT_DATE <= as.Date(end_date),
-           STATUS == "Closed",
-           STATE %in% c("NC", "")) %>% 
+           STATUS %in% status_user,
+           CURRENT_STATE %in% c("NC", "")) %>% 
     mutate(Counts = n()) %>% 
     arrange(TYPE_DESC, OWNING_JD)
   
@@ -57,42 +57,42 @@ class(case$REPORT_TO_CDC)
 rm(enteric, enteric2, enterics, case_combo, case_combo_final, case_combo_sub)
 
 # enteric
-case_combo <- create_case_combo(c("Confirmed", "Probable"), c("BOT", "BOTI", "CAMP", "CRYPT", "CYCLO", "ECOLI", "FBOTHER", "CPERF", "FBPOIS", "STAPH", "HUS", "LIST", "SAL", "SHIG", "TRICH", "TYPHOID", "TYPHCAR", "VIBOTHER", "VIBVUL"), "Yes")
-case_combo_sub <- create_case_combo(c("Suspect"), c("ECOLI"), "Yes")
-case_combo_final <- rbind(case_combo, case_combo_sub)
-enteric <- create_final_df(case_combo_final, "2023-12-31", "Enteric")
+case_combo <- create_case_combo(classification_user=c("Confirmed", "Probable"), c("BOT", "BOTI", "CAMP", "CRYPT", "CYCLO", "ECOLI", "FBOTHER", "CPERF", "FBPOIS", "STAPH", "HUS", "LIST", "SAL", "SHIG", "TRICH", "TYPHOID", "TYPHCAR", "VIBOTHER", "VIBVUL"), c("Yes", "No"))
+case_combo_sub <- create_case_combo(c("Suspect"), c("ECOLI"), c("Yes", "No"))
+case_combo_final <- rbind(dataset=case_combo, case_combo_sub)
+enteric <- create_final_df(dataset=case_combo_final, user_disease_name="Enteric")
 
 
 # HAI
-case_combo <- create_case_combo(c("Confirmed", "Probable"), c("CAURIS", "STRA", "SAUR", "TSS", "TSSS"), "Yes")
+case_combo <- create_case_combo(c("Confirmed", "Probable"), c("CAURIS", "STRA", "SAUR", "TSS", "TSSS"), c("Yes"))
 case_combo_sub <- create_case_combo(c("Confirmed", "Probable"), c("CRE"))
 case_combo_final <- rbind(case_combo, case_combo_sub)
-HAI <- create_final_df(case_combo_final, "2023-12-31", "Healthcare Acquired Infection")
+HAI <- create_final_df(dataset=case_combo_final, user_disease_name="Healthcare Acquired Infection")
 
 # Hep
-case_combo <- create_case_combo(c("Confirmed", "Probable"), c("HEPB_C", "HEPB_P", "HEPA", "HEPB_A", "HEPC", "HEPB_U", "HEPCC"), "Yes")
-hep <- create_final_df(case_combo, "2023-12-31", "Hepatitis")
+case_combo <- create_case_combo(c("Confirmed", "Probable"), c("HEPB_C", "HEPB_P", "HEPA", "HEPB_A", "HEPC", "HEPB_U", "HEPCC"), c("Yes"))
+hep <- create_final_df(dataset=case_combo, user_disease_name="Hepatitis")
 
 # Respiratory
-case_combo <- create_case_combo(c("Confirmed", "Probable"), c("FLU", "FLUD", "LEG"), "Yes")
+case_combo <- create_case_combo(c("Confirmed", "Probable"), c("FLU", "FLUD", "LEG"), c("Yes"))
 case_combo_sub <- create_case_combo(c("Confirmed", "Probable"), c("FLUDA"))
 case_combo_final <- rbind(case_combo, case_combo_sub)
-Resp <- create_final_df(case_combo_final, "2023-12-31", "Respiratory")
+Resp <- create_final_df(dataset=case_combo_final, user_disease_name="Respiratory")
 
 
 # VPD
-case_combo <- create_case_combo(c("Confirmed", "Probable"), c("DIP", "HFLU", "MEAS", "NMEN", "MPOX", "MUMPS", "PERT", "POL", "RUB", "RUBCONG", "TET", "VARICELLA"), "Yes")
+case_combo <- create_case_combo(c("Confirmed", "Probable"), c("DIP", "HFLU", "MEAS", "NMEN", "MPOX", "MUMPS", "PERT", "POL", "RUB", "RUBCONG", "TET", "VARICELLA"), c("Yes"))
 case_combo_sub <- create_case_combo(c("Confirmed", "Probable"), c("AFM", "MENP", "VAC"))
 case_combo_final <- rbind(case_combo, case_combo_sub)
-vpd <- create_final_df(case_combo_final, "2023-12-31", "Vaccine Preventable")
+vpd <- create_final_df(dataset=case_combo_final, user_disease_name="Vaccine Preventable")
 
 # zoonotic 
 case_combo <- create_case_combo(c("Confirmed", "Probable"), c("ANTH", "ARB", "BRU", "CHIKV", "DENGUE", "EHR", "HGE", "EEE", "HME", 
                                                               "LAC", "LEP", "WNI", "LEPTO", "LYME", "MAL", "PSTT","PLAG", "QF", "RMSF", "RAB", "TUL", "TYPHUS", 
-                                                              "YF", "ZIKA", "VHF"), "Yes")
+                                                              "YF", "ZIKA", "VHF"), c("Yes"))
 case_combo_sub <- create_case_combo(c("Confirmed", "Probable"), c("CJD"))
 case_combo_final <- rbind(case_combo, case_combo_sub)
-zoo <- create_final_df(case_combo_final, "2023-12-31", "Vector-Borne/Zoonotic")
+zoo <- create_final_df(dataset=case_combo_final, user_disease_name="Vector-Borne/Zoonotic")
 
 # std additional packages required.
 # must already load previous packages at top of this file.
@@ -109,7 +109,7 @@ create_std_df <- function(include_column, date_basis, date_label, user_type, rep
   user_type <- enquo(user_type)
 
   df <- case %>% 
-  filter({{date_basis}} >= as.Date("2015-01-01") & {{date_basis}} <= as.Date("2023-12-31"),
+  filter({{date_basis}} >= as.Date("2015-01-01") & {{date_basis}} <= as.Date("2025-02-01"),
          CLASSIFICATION_CLASSIFICATION %in% c("Confirmed", "Probable"),
          !!user_type,
          if (!is.null(report_to_cdc_user)) REPORT_TO_CDC %in% report_to_cdc_user else TRUE) %>% 
@@ -171,15 +171,13 @@ final_nostd <- final_nostd %>%
          TYPE_DESC != "",
          Disease != 'Syphilis - Unknown Syphilis (700)')
 
-# sample aggregating code
-
 
 # aggregate date packages
 pacman::p_load(lubridate)
 
 # aggregate by week
 agg_weekly <- final_nostd %>% 
-  mutate(Week = epiweek(EVENT_DATE)) %>% 
+  mutate(Week = week(EVENT_DATE)) %>% 
   group_by(Year, Disease, Week) %>% 
   summarise(Cases = n())
 
@@ -190,7 +188,7 @@ selected_diseases <- c("Campylobacter infection (50)", "Cryptosporidiosis (56)",
 
 aberration_weekly <- final_nostd %>%
   filter(Disease %in% selected_diseases) %>% 
-  mutate(Week = epiweek(EVENT_DATE),
+  mutate(Week = week(EVENT_DATE),
          age_cat = age_categories(AGE, breakers = c(0, 5, 10, 15, 20, 30, 40, 50))) %>% 
   group_by(Year, Disease, Week, age_cat, GENDER, HISPANIC, RACE1, County_substr) %>% 
   summarise(Cases = n())
@@ -198,6 +196,7 @@ aberration_weekly <- final_nostd %>%
 # export
 export(aberration_weekly, "aberration_weekly.xlsx")
 
+# aggregate by week and join with data scaffolding table
 expanded_scaffold <- expand.grid(Disease = selected_diseases, Year = 2015:2024, Hispanic = Hispanic, age_cat = age_cat, Week = 1:53, Gender = c("Male", "Female", ""), Cases = 0)
 age_cat = unique(aberration_weekly$age_cat)
 Hispanic = unique(aberration_weekly$HISPANIC)
@@ -242,10 +241,6 @@ region_weekly <- final_nostd %>%
   group_by(Year, Region, Disease, Week) %>% 
   summarise(Cases = n(), .groups = "keep") %>% 
   arrange(Disease, Year, Region, Week)
-
-
-  
-
 
 # export
 export(agg_weekly, "agg_weekly.xlsx")
